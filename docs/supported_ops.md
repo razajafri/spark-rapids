@@ -102,6 +102,7 @@ Apache Spark uses a Directed Acyclic Graph(DAG) of processing to build a query.
 The nodes in this graph are instances of `SparkPlan` and represent various high
 level operations like doing a filter or project. The operations that the RAPIDS
 Accelerator supports are described below.
+<div class="table-responsive-md">
 <table>
 <tr>
 <th>Executor</th>
@@ -886,6 +887,7 @@ Accelerator supports are described below.
 <td><b>NS</b></td>
 </tr>
 </table>
+</div>
 * As was stated previously Decimal is only supported up to a precision of
 18 and Timestamp is only supported in the
 UTC time zone. Decimals are off by default due to performance impact in
