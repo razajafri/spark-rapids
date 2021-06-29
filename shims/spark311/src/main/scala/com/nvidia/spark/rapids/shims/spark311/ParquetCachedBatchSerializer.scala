@@ -395,11 +395,12 @@ class ParquetCachedBatchSerializer extends CachedBatchSerializer with Arm {
       val splitIndices = scala.Range(rowsAllowedInBatch, gpuCB.numRows(), rowsAllowedInBatch)
       val buffers = new ListBuffer[ParquetCachedBatch]
       if (splitIndices.nonEmpty) {
-        val splitVectors = new ListBuffer[Array[ColumnVector]]
+        val splitVectors = new ListBuffer[Array[ColumnView]]
         try {
           for (index <- 0 until gpuCB.numCols()) {
-            splitVectors +=
-                gpuCB.column(index).asInstanceOf[GpuColumnVector].getBase.split(splitIndices: _*)
+            val cv = gpuCB.column(index).asInstanceOf[GpuColumnVector].getBase
+                .asInstanceOf[ColumnView]
+            splitVectors += cv.splitAsViews(splitIndices: _*)
           }
 
           // Splitting the table
@@ -408,14 +409,13 @@ class ParquetCachedBatchSerializer extends CachedBatchSerializer with Arm {
           // T01= {splitCol1(1), splitCol2(1),...,splitColn(1)}
           // ...
           // T0m= {splitCol1(m), splitCol2(m),...,splitColn(m)}
-          def makeTableForIndex(i: Int): Table = {
-            val columns = splitVectors.indices.map(j => splitVectors(j)(i))
-            new Table(columns: _*)
+          def makeTableForIndex(i: Int): Seq[ColumnView] = {
+            splitVectors.indices.map(j => splitVectors(j)(i))
           }
 
           for (i <- splitVectors.head.indices) {
-            withResource(makeTableForIndex(i)) { table =>
-              val buffer = writeTableToCachedBatch(table, schema)
+            withResource(makeTableForIndex(i)) { columnViews =>
+              val buffer = writeTableToCachedBatch(columnViews, schema)
               buffers += ParquetCachedBatch(buffer)
             }
           }
@@ -423,25 +423,21 @@ class ParquetCachedBatchSerializer extends CachedBatchSerializer with Arm {
           splitVectors.foreach(array => array.safeClose())
         }
       } else {
-        withResource(GpuColumnVector.from(gpuCB)) { table =>
-          val buffer = writeTableToCachedBatch(table, schema)
-          buffers += ParquetCachedBatch(buffer)
-        }
+        val buffer = writeTableToCachedBatch(gpuCB.safeMap(_.getBase), schema)
+        buffers += ParquetCachedBatch(buffer)
       }
       buffers.toList
     }
   }
 
   private def writeTableToCachedBatch(
-      table: Table,
+      columnViews: Seq[ColumnView],
       schema: StructType): ParquetBufferConsumer = {
-    val buffer = new ParquetBufferConsumer(table.getRowCount.toInt)
+    val buffer = new ParquetBufferConsumer(columnViews(0).getRowCount.toInt)
     val opts = GpuParquetFileFormat
         .parquetWriterOptionsFromSchema(ParquetWriterOptions.builder(), schema, writeInt96 = false)
         .withStatisticsFrequency(StatisticsFrequency.ROWGROUP).build()
-    withResource(Table.writeParquetChunked(opts, buffer)) { writer =>
-      writer.write(table)
-    }
+    Table.writeColumnViewsToParquet(opts, buffer, columnViews:_*)
     buffer
   }
 
