@@ -87,6 +87,7 @@ do
   # dedupe
   for CLASS in $(echo -e $CLASSES|sort|uniq|xargs)
   do
+  FOUND_CLASSES=""
   if [ ! -z "${CLASS}" ]; then
     # Look for the class name in the dependencies to determine if this change affects us
     set +ex
@@ -94,10 +95,12 @@ do
     set -ex
     echo -e "looking for class ${CLASS} and ${FOUND}\n"
     if [ ${FOUND} -ne 0 ]; then 
-      printf "%s\t%s\t%s\t%s\n" "P1" "${COMMIT_ID}" "${COMMIT_MSG}" "${CLASS}" >> ${PRIORITIZED_COMMITS}
-      printf "%s\t%s\n" "${COMMIT_ID}" "${CLASS}" >> ${AUDIT_PLUGIN_LOG}
-      break
+      FOUND_CLASSES=$FOUND_CLASSES\n${CLASS}
     fi
+  fi
+  if [ -n ${FOUND_CLASSES} ]; then
+    printf "%s\t%s\t%s\t%s\n" "P1" "${COMMIT_ID}" "${COMMIT_MSG}" "${CLASS}" >> ${PRIORITIZED_COMMITS}
+    printf "%s\t%s\n" "${COMMIT_ID}" "${FOUND_CLASSES}" >> ${AUDIT_PLUGIN_LOG}
   fi
   done
   if [ ${FOUND} -eq 0 ]; then
