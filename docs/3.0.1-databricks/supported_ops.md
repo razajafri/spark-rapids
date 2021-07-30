@@ -384,7 +384,7 @@
 </tr>
 </table>
 
-## 'AnsiCast' for Spark 3.0.1-databricks
+## AnsiCast for Spark 3.0.1-databricks
 
 <table>
 <tr><th rowSpan="2" colSpan="2"></th><th colSpan="18">TO</th></tr>

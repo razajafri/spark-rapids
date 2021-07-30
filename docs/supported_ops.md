@@ -19367,18 +19367,18 @@ by Spark it does not mean they all produce usable results.  For example casting
 from a date to a boolean always produces a null. This is for Hive compatibility
 and the accelerator produces the same result.
 
-### ['AnsiCast' for Spark 3.0.1]()
-### ['AnsiCast' for Spark 3.0.1-amzn]()
-### ['AnsiCast' for Spark 3.0.1-databricks]()
-### ['AnsiCast' for Spark 3.0.2-databricks]()
-### ['AnsiCast' for Spark 3.0.3-databricks]()
-### ['AnsiCast' for Spark 3.0.4-databricks]()
-### ['AnsiCast' for Spark 3.1.1]()
-### ['AnsiCast' for Spark 3.1.1-cloudera]()
-### ['AnsiCast' for Spark 3.1.1-databricks]()
-### ['AnsiCast' for Spark 3.1.2]()
-### ['AnsiCast' for Spark 3.1.3]()
-### ['AnsiCast' for Spark 3.2.0]()
+### [AnsiCast for Spark 3.0.1](3.0.1-databricks/supported_ops.md#ansicast-for-spark-301-databricks)
+### [AnsiCast for Spark 3.0.1-amzn](3.0.1-databricks/supported_ops.md#ansicast-for-spark-301-databricks)
+### [AnsiCast for Spark 3.0.1-databricks](3.0.1-databricks/supported_ops.md#ansicast-for-spark-301-databricks)
+### [AnsiCast for Spark 3.0.2-databricks](3.0.1-databricks/supported_ops.md#ansicast-for-spark-301-databricks)
+### [AnsiCast for Spark 3.0.3-databricks](3.0.1-databricks/supported_ops.md#ansicast-for-spark-301-databricks)
+### [AnsiCast for Spark 3.0.4-databricks](3.0.1-databricks/supported_ops.md#ansicast-for-spark-301-databricks)
+### [AnsiCast for Spark 3.1.1](3.0.1-databricks/supported_ops.md#ansicast-for-spark-301-databricks)
+### [AnsiCast for Spark 3.1.1-cloudera](3.0.1-databricks/supported_ops.md#ansicast-for-spark-301-databricks)
+### [AnsiCast for Spark 3.1.1-databricks](3.0.1-databricks/supported_ops.md#ansicast-for-spark-301-databricks)
+### [AnsiCast for Spark 3.1.2](3.0.1-databricks/supported_ops.md#ansicast-for-spark-301-databricks)
+### [AnsiCast for Spark 3.1.3](3.0.1-databricks/supported_ops.md#ansicast-for-spark-301-databricks)
+### [AnsiCast for Spark 3.2.0](3.0.1-databricks/supported_ops.md#ansicast-for-spark-301-databricks)
 
 ### `Cast`
 
