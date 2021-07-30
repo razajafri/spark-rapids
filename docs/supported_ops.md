@@ -19349,7 +19349,9 @@ Accelerator support is described below.
 UTC time zone. Decimals are off by default due to performance impact in
 some cases.
 
-## [Expressions for Spark 3.0.1](3.0.1/supported_ops.md#expressions_for_spark_301_databricks)
+## [Expressions for Spark 3.0.1-databricks](3.0.1-databricks/supported_ops.md#expressions-for-spark-301-databricks)
+
+## [Expressions for Spark 3.1.1](3.1.1/supported_ops.md#expressions-for-spark-311)
 
 ## Space for Expressions from other Spark versions
 
