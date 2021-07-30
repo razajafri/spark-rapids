@@ -304,89 +304,9 @@ Name | SQL Function(s) | Description | Default Value | Notes
 <a name="sql.expression.NormalizeNaNAndZero"></a>spark.rapids.sql.expression.NormalizeNaNAndZero| |Normalize NaN and zero|true|None|
 <a name="sql.expression.ScalarSubquery"></a>spark.rapids.sql.expression.ScalarSubquery| |Subquery that will return only one row and one column|true|None|
 
-### Expressions for Spark 3.0.1
+### [Expressions for Spark 3.0.1-databricks](3.0.1-databricks/configs.md##expressions-for-spark-301-databricks)
 
-Name | SQL Function(s) | Description | Default Value | Notes
------|-----------------|-------------|---------------|------
-<a name="sql.expression.If"></a>spark.rapids.sql.expression.If|`if`|IF expression|true|None|
-<a name="sql.expression.StringLocate"></a>spark.rapids.sql.expression.StringLocate|`position`, `locate`|Substring search operator|true|None|
-<a name="sql.expression.TimeSub"></a>spark.rapids.sql.expression.TimeSub| |Subtracts interval from timestamp|true|None|
-
-### Expressions for Spark 3.0.1-amzn
-
-Name | SQL Function(s) | Description | Default Value | Notes
------|-----------------|-------------|---------------|------
-<a name="sql.expression.If"></a>spark.rapids.sql.expression.If|`if`|IF expression|true|None|
-<a name="sql.expression.StringLocate"></a>spark.rapids.sql.expression.StringLocate|`position`, `locate`|Substring search operator|true|None|
-<a name="sql.expression.TimeSub"></a>spark.rapids.sql.expression.TimeSub| |Subtracts interval from timestamp|true|None|
-
-### Expressions for Spark 3.0.1-databricks
-
-Name | SQL Function(s) | Description | Default Value | Notes
------|-----------------|-------------|---------------|------
-<a name="sql.expression.If"></a>spark.rapids.sql.expression.If|`if`|IF expression|true|None|
-<a name="sql.expression.StringLocate"></a>spark.rapids.sql.expression.StringLocate|`position`, `locate`|Substring search operator|true|None|
-<a name="sql.expression.TimeSub"></a>spark.rapids.sql.expression.TimeSub| |Subtracts interval from timestamp|true|None|
-
-### Expressions for Spark 3.0.2
-
-Name | SQL Function(s) | Description | Default Value | Notes
------|-----------------|-------------|---------------|------
-<a name="sql.expression.If"></a>spark.rapids.sql.expression.If|`if`|IF expression|true|None|
-<a name="sql.expression.StringLocate"></a>spark.rapids.sql.expression.StringLocate|`position`, `locate`|Substring search operator|true|None|
-<a name="sql.expression.TimeSub"></a>spark.rapids.sql.expression.TimeSub| |Subtracts interval from timestamp|true|None|
-
-### Expressions for Spark 3.0.3
-
-Name | SQL Function(s) | Description | Default Value | Notes
------|-----------------|-------------|---------------|------
-<a name="sql.expression.If"></a>spark.rapids.sql.expression.If|`if`|IF expression|true|None|
-<a name="sql.expression.StringLocate"></a>spark.rapids.sql.expression.StringLocate|`position`, `locate`|Substring search operator|true|None|
-<a name="sql.expression.TimeSub"></a>spark.rapids.sql.expression.TimeSub| |Subtracts interval from timestamp|true|None|
-
-### Expressions for Spark 3.0.4-SNAPSHOT
-
-Name | SQL Function(s) | Description | Default Value | Notes
------|-----------------|-------------|---------------|------
-<a name="sql.expression.If"></a>spark.rapids.sql.expression.If|`if`|IF expression|true|None|
-<a name="sql.expression.StringLocate"></a>spark.rapids.sql.expression.StringLocate|`position`, `locate`|Substring search operator|true|None|
-<a name="sql.expression.TimeSub"></a>spark.rapids.sql.expression.TimeSub| |Subtracts interval from timestamp|true|None|
-
-### Expressions for Spark 3.1.1
-
-Name | SQL Function(s) | Description | Default Value | Notes
------|-----------------|-------------|---------------|------
-<a name="sql.expression.If"></a>spark.rapids.sql.expression.If|`if`|IF expression|true|None|
-<a name="sql.expression.StringLocate"></a>spark.rapids.sql.expression.StringLocate|`position`, `locate`|Substring search operator|true|None|
-
-### Expressions for Spark 3.1.1-databricks
-
-Name | SQL Function(s) | Description | Default Value | Notes
------|-----------------|-------------|---------------|------
-<a name="sql.expression.If"></a>spark.rapids.sql.expression.If|`if`, `iff`|IF expression|true|None|
-<a name="sql.expression.StringLocate"></a>spark.rapids.sql.expression.StringLocate|`position`, `charindex`, `locate`|Substring search operator|true|None|
-
-### Expressions for Spark 3.1.1-Cloudera
-
-Name | SQL Function(s) | Description | Default Value | Notes
------|-----------------|-------------|---------------|------
-<a name="sql.expression.If"></a>spark.rapids.sql.expression.If|`if`|IF expression|true|None|
-<a name="sql.expression.StringLocate"></a>spark.rapids.sql.expression.StringLocate|`position`, `locate`|Substring search operator|true|None|
-
-### Expressions for Spark 3.1.2
-
-Name | SQL Function(s) | Description | Default Value | Notes
------|-----------------|-------------|---------------|------
-<a name="sql.expression.If"></a>spark.rapids.sql.expression.If|`if`|IF expression|true|None|
-<a name="sql.expression.StringLocate"></a>spark.rapids.sql.expression.StringLocate|`position`, `locate`|Substring search operator|true|None|
-
-### Expressions for Spark 3.1.3-SNAPSHOT
-
-Name | SQL Function(s) | Description | Default Value | Notes
------|-----------------|-------------|---------------|------
-<a name="sql.expression.If"></a>spark.rapids.sql.expression.If|`if`|IF expression|true|None|
-<a name="sql.expression.StringLocate"></a>spark.rapids.sql.expression.StringLocate|`position`, `locate`|Substring search operator|true|None|
-
+### [Expressions for Spark 3.1.1](3.1.1/configs.md#expressions-for-spark-311)
 
 ### Common Executions 
 
@@ -425,42 +345,9 @@ Name | Description | Default Value | Notes
 <a name="sql.exec.WindowInPandasExec"></a>spark.rapids.sql.exec.WindowInPandasExec|The backend for Window Aggregation Pandas UDF, Accelerates the data transfer between the Java process and the Python process. It also supports scheduling GPU resources for the Python process when enabled. For now it only supports row based window frame.|false|This is disabled by default because it only supports row based frame for now|
 <a name="sql.exec.WindowExec"></a>spark.rapids.sql.exec.WindowExec|Window-operator backend|true|None|
 
-### Execution for Spark 3.0.1-databricks
+### [Execution for Spark 3.0.1-databricks](3.0.1-databricks/configs.md#execution-for-spark-301-databricks)
 
-Name | Description | Default Value | Notes
------|-------------|---------------|------------------
-<a name="sql.exec.RunningWindowFunctionExec"></a>spark.rapids.sql.exec.RunningWindowFunctionExec|Databricks-specific window function exec, for "running" windows, i.e. (UNBOUNDED PRECEDING TO CURRENT ROW)|true|None|
-
-### Execution for Spark 3.1.1
-
-Name | Description | Default Value | Notes
------|-------------|---------------|------------------
-<a name="sql.exec.InMemoryTableScanExec"></a>spark.rapids.sql.exec.InMemoryTableScanExec|Implementation of InMemoryTableScanExec to use GPU accelerated Caching|true|None|
-
-### Execution for Spark 3.1.1-databricks
-
-Name | Description | Default Value | Notes
------|-------------|---------------|------------------
-<a name="sql.exec.RunningWindowFunctionExec"></a>spark.rapids.sql.exec.RunningWindowFunctionExec|Databricks-specific window function exec, for "running" windows, i.e. (UNBOUNDED PRECEDING TO CURRENT ROW)|true|None|
-<a name="sql.exec.InMemoryTableScanExec"></a>spark.rapids.sql.exec.InMemoryTableScanExec|Implementation of InMemoryTableScanExec to use GPU accelerated Caching|true|None|
-
-### Execution for Spark 3.1.1-Cloudera
-
-Name | Description | Default Value | Notes
------|-------------|---------------|------------------
-<a name="sql.exec.InMemoryTableScanExec"></a>spark.rapids.sql.exec.InMemoryTableScanExec|Implementation of InMemoryTableScanExec to use GPU accelerated Caching|true|None|
-
-### Execution for Spark 3.1.2
-
-Name | Description | Default Value | Notes
------|-------------|---------------|------------------
-<a name="sql.exec.InMemoryTableScanExec"></a>spark.rapids.sql.exec.InMemoryTableScanExec|Implementation of InMemoryTableScanExec to use GPU accelerated Caching|true|None|
-
-### Execution for Spark 3.1.3-SNAPSHOT
-
-Name | Description | Default Value | Notes
------|-------------|---------------|------------------
-<a name="sql.exec.InMemoryTableScanExec"></a>spark.rapids.sql.exec.InMemoryTableScanExec|Implementation of InMemoryTableScanExec to use GPU accelerated Caching|true|None|
+### [Execution for Spark 3.1.1](3.1.1/configs.md#execution-for-spark-311)
 
 ### Scans
 
