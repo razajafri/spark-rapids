@@ -1,9 +1,3 @@
----
-layout: page
-title: Supported Operators
-nav_order: 6
----
-
 # Execution for Spark 3.0.1-databricks
 <table>
 <tr>
@@ -53,4 +47,3 @@ nav_order: 6
 <td><b>NS</b></td>
 </tr> 
 </table>
-/table>
