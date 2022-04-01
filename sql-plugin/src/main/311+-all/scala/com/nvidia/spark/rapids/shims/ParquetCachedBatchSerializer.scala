@@ -466,15 +466,12 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
     }
     val (cachedSchemaWithNames, selectedSchemaWithNames) =
       getSupportedSchemaFromUnsupported(cacheAttributes, newSelectedAttributes)
-    val start = System.currentTimeMillis()
     val rdd = convertCachedBatchToColumnarInternal(
       input,
       cachedSchemaWithNames,
       selectedSchemaWithNames,
       newSelectedAttributes)
-    val end = System.currentTimeMillis()
-    val d = new Data("read", end - start, "PCBS", "true")
-    Data.add(d)
+
     rdd
   }
 
@@ -486,6 +483,7 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
 
     val cbRdd: RDD[ColumnarBatch] = input.map {
       case parquetCB: ParquetCachedBatch =>
+        val start = System.currentTimeMillis()
         val parquetOptions = ParquetOptions.builder()
             .includeColumn(selectedAttributes.map(_.name).asJavaCollection).build()
         withResource(Table.readParquet(parquetOptions, parquetCB.buffer, 0,
@@ -513,7 +511,11 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
             }
           } { col =>
             withResource(new Table(col: _*)) { t =>
-              GpuColumnVector.from(t, originalSelectedAttributes.map(_.dataType).toArray)
+              val g = GpuColumnVector.from(t, originalSelectedAttributes.map(_.dataType).toArray)
+              val end = System.currentTimeMillis()
+              val d = new Data("read", end - start, "PCBS", "true")
+              Data.add(d)
+              g
             }
           }
         }
