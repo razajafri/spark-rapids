@@ -602,6 +602,7 @@ object GpuTransitionOverrides {
    * a GpuExec or not, and this gets hidden by the query stage wrapper.
    */
   def getNonQueryStagePlan(plan: SparkPlan): SparkPlan = {
+    org.apache.spark.SparkContext.getOrCreate().addSparkListener(Data)
     plan match {
       case bqse: BroadcastQueryStageExec =>
         if (bqse.plan.isInstanceOf[ReusedExchangeExec]) {

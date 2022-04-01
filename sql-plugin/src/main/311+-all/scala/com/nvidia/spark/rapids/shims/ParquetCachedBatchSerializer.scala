@@ -325,10 +325,16 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
         if (batch.numCols() == 0) {
           List(ParquetCachedBatch(batch.numRows(), new Array[Byte](0)))
         } else {
-          withResource(putOnGpuIfNeeded(batch)) { gpuCB =>
+          val start = System.currentTimeMillis()
+          val compBatch = withResource(putOnGpuIfNeeded(batch)) { gpuCB =>
             compressColumnarBatchWithParquet(gpuCB, structSchema, schema.toStructType,
               bytesAllowedPerBatch, useCompression)
           }
+          TaskContext.get().addTaskCompletionListener(Data)
+          val end = System.currentTimeMillis()
+          val d = new Data("write", end - start, "PCBS", "true")
+          Data.add(d)
+          compBatch
         }
       })
     } else {
@@ -460,11 +466,16 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
     }
     val (cachedSchemaWithNames, selectedSchemaWithNames) =
       getSupportedSchemaFromUnsupported(cacheAttributes, newSelectedAttributes)
-    convertCachedBatchToColumnarInternal(
+    val start = System.currentTimeMillis()
+    val rdd = convertCachedBatchToColumnarInternal(
       input,
       cachedSchemaWithNames,
       selectedSchemaWithNames,
       newSelectedAttributes)
+    val end = System.currentTimeMillis()
+    val d = new Data("read", end - start, "PCBS", "true")
+    Data.add(d)
+    rdd
   }
 
   private def convertCachedBatchToColumnarInternal(
@@ -548,10 +559,16 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
       val batches = convertCachedBatchToColumnarInternal(input, cachedSchemaWithNames,
         selectedSchemaWithNames, newSelectedAttributes)
       val cbRdd = batches.map(batch => {
-        withResource(batch) { gpuBatch =>
+        val start = System.currentTimeMillis()
+        val cb = withResource(batch) { gpuBatch =>
           val cols = GpuColumnVector.extractColumns(gpuBatch)
           new ColumnarBatch(cols.safeMap(_.copyToHost()).toArray, gpuBatch.numRows())
         }
+        val end = System.currentTimeMillis()
+        TaskContext.get().addTaskCompletionListener(Data)
+        val d = new Data("read", end - start, "PCBS", "true (broughtback)")
+        Data.add(d)
+        cb
       })
       cbRdd.mapPartitions(iter => CloseableColumnBatchIterator(iter))
     } else {
@@ -583,6 +600,7 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
       cacheAttributes: Seq[Attribute],
       selectedAttributes: Seq[Attribute],
       conf: SQLConf): RDD[InternalRow] = {
+    TaskContext.get().addTaskCompletionListener(Data)
     val (cachedSchemaWithNames, selectedSchemaWithNames) =
       getSupportedSchemaFromUnsupported(cacheAttributes, selectedAttributes)
     val newSelectedAttributes = sanitizeColumnNames(selectedAttributes, selectedSchemaWithNames)
@@ -1368,6 +1386,7 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
       storageLevel: StorageLevel,
       conf: SQLConf): RDD[CachedBatch] = {
 
+    TaskContext.get().addTaskCompletionListener(Data)
     val rapidsConf = new RapidsConf(conf)
     val useCompression = conf.useCompression
     val bytesAllowedPerBatch = getBytesAllowedPerBatch(conf)

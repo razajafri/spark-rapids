@@ -1,2 +1,3 @@
 com/nvidia/spark/ParquetCachedBatchSerializer*
+org/apache/spark/sql/execution/columnar/rapids/DefaultCachedBatchSerializer*
 com/nvidia/spark/GpuCachedBatchSerializer*
