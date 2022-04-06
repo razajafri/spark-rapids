@@ -176,7 +176,6 @@ class DefaultCachedBatchSerializer extends SimpleMetricsCachedBatchSerializer {
       cacheAttributes: Seq[Attribute],
       selectedAttributes: Seq[Attribute],
       conf: SQLConf): RDD[InternalRow] = {
-    TaskContext.get().addTaskCompletionListener(Data)
     // Find the ordinals and data types of the requested columns.
     val (requestedColumnIndices, requestedColumnDataTypes) =
       selectedAttributes.map { a =>
@@ -189,7 +188,7 @@ class DefaultCachedBatchSerializer extends SimpleMetricsCachedBatchSerializer {
     }.toArray
 
     input.mapPartitionsInternal { cachedBatchIterator =>
-//      TaskContext.get().addTaskCompletionListener(Data)
+      TaskContext.get().addTaskCompletionListener(Data)
       val columnarIterator = GenerateColumnAccessor.generate(columnTypes)
       columnarIterator.initialize(cachedBatchIterator.asInstanceOf[Iterator[DefaultCachedBatch]],
         columnTypes,

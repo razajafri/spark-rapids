@@ -341,6 +341,7 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
       val broadcastedConf = SparkSession.active.sparkContext.broadcast(conf.getAllConfs)
       input.mapPartitions {
         cbIter =>
+          TaskContext.get().addTaskCompletionListener(Data)
           new CachedBatchIteratorProducer[ColumnarBatch](cbIter, schemaWithUnambiguousNames, schema,
             broadcastedConf).getColumnarBatchToCachedBatchIterator
       }
@@ -579,6 +580,7 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
       val broadcastedConf = SparkSession.active.sparkContext.broadcast(conf.getAllConfs)
       input.mapPartitions {
         cbIter => {
+          TaskContext.get().addTaskCompletionListener(Data)
           new CachedBatchIteratorConsumer(cbIter, cachedSchemaWithNames, selectedSchemaWithNames,
             cacheAttributes, origSelectedAttributesWithUnambiguousNames, broadcastedConf)
             .getColumnBatchIterator
@@ -737,12 +739,16 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
         }
 
         override def next(): InternalRow = {
+          val start = System.currentTimeMillis()
           // will return the next InternalRow if hasNext() is true, otherwise throw
-          if (hasNext) {
+          val r = if (hasNext) {
             iter.next()
           } else {
             throw new NoSuchElementException("no elements found")
           }
+          val end = System.currentTimeMillis()
+          Data.add(new Data("read", end - start, "PCBS", "false"))
+          r
         }
 
         /**
@@ -1054,12 +1060,16 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
       }
 
       override def next(): ColumnarBatch = {
+        val start = System.currentTimeMillis()
         // will return the next ColumnarBatch if hasNext() is true, otherwise throw
-        if (hasNext) {
+        val cb = if (hasNext) {
           iter.next()
         } else {
           throw new NoSuchElementException("no elements found")
         }
+        val end = System.currentTimeMillis()
+        Data.add(new Data("read", end - start, "PCBS", "false"))
+        cb
       }
     }
   }
@@ -1221,6 +1231,7 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
       }.sum
 
       override def next(): CachedBatch = {
+        val start = System.currentTimeMillis()
         if (queue.isEmpty) {
           // to store a row if we have read it but there is no room in the parquet file to put it
           // we will put it in the next CachedBatch
@@ -1276,7 +1287,10 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
             queue += ParquetCachedBatch(rows, stream.toByteArray)
           }
         }
-        queue.dequeue()
+        val end = System.currentTimeMillis()
+        val cb = queue.dequeue()
+        Data.add(new Data("write", end - start, "PCBS", "false"))
+        cb
       }
     }
 
