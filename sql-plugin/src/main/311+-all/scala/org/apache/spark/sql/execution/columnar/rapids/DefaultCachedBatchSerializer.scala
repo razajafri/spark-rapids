@@ -16,7 +16,7 @@
 
 package org.apache.spark.sql.execution.columnar.rapids
 
-import com.nvidia.spark.rapids.Data
+import ai.rapids.cudf.{NvtxColor, NvtxRange}
 
 import org.apache.spark.TaskContext
 import org.apache.spark.network.util.JavaUtils
@@ -60,49 +60,49 @@ class DefaultCachedBatchSerializer extends SimpleMetricsCachedBatchSerializer {
       batchSize: Int,
       useCompression: Boolean): RDD[CachedBatch] = {
     input.mapPartitionsInternal { rowIterator =>
-      TaskContext.get().addTaskCompletionListener(Data)
       new Iterator[DefaultCachedBatch] {
         def next(): DefaultCachedBatch = {
-          val start = System.currentTimeMillis()
-          val columnBuilders = output.map { attribute =>
-            ColumnBuilder(attribute.dataType, batchSize, attribute.name, useCompression)
-          }.toArray
+          val r = new NvtxRange("write defa", NvtxColor.RED)
+          try {
+            val columnBuilders = output.map { attribute =>
+              ColumnBuilder(attribute.dataType, batchSize, attribute.name, useCompression)
+            }.toArray
 
-          var rowCount = 0
-          var totalSize = 0L
-          while (rowIterator.hasNext && rowCount < batchSize
-              && totalSize < ColumnBuilder.MAX_BATCH_SIZE_IN_BYTE) {
-            val row = rowIterator.next()
+            var rowCount = 0
+            var totalSize = 0L
+            while (rowIterator.hasNext && rowCount < batchSize
+                && totalSize < ColumnBuilder.MAX_BATCH_SIZE_IN_BYTE) {
+              val row = rowIterator.next()
 
-            // Added for SPARK-6082. This assertion can be useful for scenarios when something
-            // like Hive TRANSFORM is used. The external data generation script used in TRANSFORM
-            // may result malformed rows, causing ArrayIndexOutOfBoundsException, which is somewhat
-            // hard to decipher.
-            assert(
-              row.numFields == columnBuilders.length,
-              s"Row column number mismatch, expected ${output.size} columns, " +
-                  s"but got ${row.numFields}." +
-                  s"\nRow content: $row")
+              // Added for SPARK-6082. This assertion can be useful for scenarios when something
+              // like Hive TRANSFORM is used. The external data generation script used in TRANSFORM
+              // may result malformed rows, causing ArrayIndexOutOfBoundsException, which is
+              // somewhat hard to decipher.
+              assert(
+                row.numFields == columnBuilders.length,
+                s"Row column number mismatch, expected ${output.size} columns, " +
+                    s"but got ${row.numFields}." +
+                    s"\nRow content: $row")
 
-            var i = 0
-            totalSize = 0
-            while (i < row.numFields) {
-              columnBuilders(i).appendFrom(row, i)
-              totalSize += columnBuilders(i).columnStats.sizeInBytes
-              i += 1
+              var i = 0
+              totalSize = 0
+              while (i < row.numFields) {
+                columnBuilders(i).appendFrom(row, i)
+                totalSize += columnBuilders(i).columnStats.sizeInBytes
+                i += 1
+              }
+              rowCount += 1
             }
-            rowCount += 1
+
+            val stats = InternalRow.fromSeq(
+              columnBuilders.flatMap(_.columnStats.collectedStatistics).toSeq)
+            DefaultCachedBatch(rowCount, columnBuilders.map { builder =>
+              JavaUtils.bufferToArray(builder.build())
+            }, stats)
+          } finally {
+            r.close()
           }
 
-          val stats = InternalRow.fromSeq(
-            columnBuilders.flatMap(_.columnStats.collectedStatistics).toSeq)
-          val b = DefaultCachedBatch(rowCount, columnBuilders.map { builder =>
-            JavaUtils.bufferToArray(builder.build())
-          }, stats)
-          val end = System.currentTimeMillis()
-          val d = new Data("write", end - start, "DEFA", "?")
-          Data.add(d)
-          b
         }
 
         def hasNext: Boolean = rowIterator.hasNext
@@ -161,13 +161,12 @@ class DefaultCachedBatchSerializer extends SimpleMetricsCachedBatchSerializer {
     }
 
     input.map(b => {
-      TaskContext.get().addTaskCompletionListener(Data)
-      val start = System.currentTimeMillis()
-      val cb = createAndDecompressColumn(b)
-      val end = System.currentTimeMillis()
-      val d = new Data("read", end - start, "DEFA", "?")
-      Data.add(d)
-      cb
+      val r = new NvtxRange("read defa", NvtxColor.GREEN)
+      try {
+        createAndDecompressColumn(b)
+      } finally {
+        r.close()
+      }
     })
   }
 
@@ -188,7 +187,6 @@ class DefaultCachedBatchSerializer extends SimpleMetricsCachedBatchSerializer {
     }.toArray
 
     input.mapPartitionsInternal { cachedBatchIterator =>
-      TaskContext.get().addTaskCompletionListener(Data)
       val columnarIterator = GenerateColumnAccessor.generate(columnTypes)
       columnarIterator.initialize(cachedBatchIterator.asInstanceOf[Iterator[DefaultCachedBatch]],
         columnTypes,
@@ -203,10 +201,11 @@ class MyIter(iter: Iterator[InternalRow]) extends Iterator[InternalRow] with Ser
   override def hasNext: Boolean = iter.hasNext
 
   override def next(): InternalRow = {
-    val start = System.currentTimeMillis()
-    val a = iter.next()
-    val end = System.currentTimeMillis()
-    Data.add(new Data("read", end - start, "DEFA", "?"))
-    a
+    val r = new NvtxRange("read defa", NvtxColor.GREEN)
+    try {
+      iter.next()
+    } finally {
+      r.close()
+    }
   }
 }

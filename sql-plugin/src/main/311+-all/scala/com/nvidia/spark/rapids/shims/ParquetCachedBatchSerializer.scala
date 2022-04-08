@@ -325,23 +325,19 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
         if (batch.numCols() == 0) {
           List(ParquetCachedBatch(batch.numRows(), new Array[Byte](0)))
         } else {
-          val start = System.currentTimeMillis()
-          val compBatch = withResource(putOnGpuIfNeeded(batch)) { gpuCB =>
-            compressColumnarBatchWithParquet(gpuCB, structSchema, schema.toStructType,
-              bytesAllowedPerBatch, useCompression)
+          withResource(new NvtxRange("write pcbs", NvtxColor.RED)) { _ =>
+            withResource(putOnGpuIfNeeded(batch)) { gpuCB =>
+              compressColumnarBatchWithParquet(gpuCB, structSchema, schema.toStructType,
+                bytesAllowedPerBatch, useCompression)
+            }
           }
-          TaskContext.get().addTaskCompletionListener(Data)
-          val end = System.currentTimeMillis()
-          val d = new Data("write", end - start, "PCBS", "true")
-          Data.add(d)
-          compBatch
         }
       })
     } else {
+      throw new IllegalStateException("don't support falling back to the CPU")
       val broadcastedConf = SparkSession.active.sparkContext.broadcast(conf.getAllConfs)
       input.mapPartitions {
         cbIter =>
-          TaskContext.get().addTaskCompletionListener(Data)
           new CachedBatchIteratorProducer[ColumnarBatch](cbIter, schemaWithUnambiguousNames, schema,
             broadcastedConf).getColumnarBatchToCachedBatchIterator
       }
@@ -484,39 +480,36 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
 
     val cbRdd: RDD[ColumnarBatch] = input.map {
       case parquetCB: ParquetCachedBatch =>
-        val start = System.currentTimeMillis()
-        val parquetOptions = ParquetOptions.builder()
-            .includeColumn(selectedAttributes.map(_.name).asJavaCollection).build()
-        withResource(Table.readParquet(parquetOptions, parquetCB.buffer, 0,
-          parquetCB.sizeInBytes)) { table =>
-          withResource {
-            for (i <- 0 until table.getNumberOfColumns) yield {
-              ColumnCastUtil.ifTrueThenDeepConvertTypeAtoTypeB(table.getColumn(i),
-                originalSelectedAttributes(i).dataType,
-                (dataType, _) => dataType match {
-                  case d: DecimalType if d.scale < 0 => true
-                  case _ => false
-                },
-                (dataType, cv) => {
-                  dataType match {
-                    case d: DecimalType =>
-                      withResource(cv.bitCastTo(DecimalUtil.createCudfDecimal(d))) {
-                        _.copyToColumnVector()
-                      }
-                    case _ =>
-                      throw new IllegalStateException("We don't cast any type besides Decimal " +
-                          "with scale < 0")
+        withResource(new NvtxRange("read pcbs", NvtxColor.GREEN)) { _ =>
+          val parquetOptions = ParquetOptions.builder()
+              .includeColumn(selectedAttributes.map(_.name).asJavaCollection).build()
+          withResource(Table.readParquet(parquetOptions, parquetCB.buffer, 0,
+            parquetCB.sizeInBytes)) { table =>
+            withResource {
+              for (i <- 0 until table.getNumberOfColumns) yield {
+                ColumnCastUtil.ifTrueThenDeepConvertTypeAtoTypeB(table.getColumn(i),
+                  originalSelectedAttributes(i).dataType,
+                  (dataType, _) => dataType match {
+                    case d: DecimalType if d.scale < 0 => true
+                    case _ => false
+                  },
+                  (dataType, cv) => {
+                    dataType match {
+                      case d: DecimalType =>
+                        withResource(cv.bitCastTo(DecimalUtil.createCudfDecimal(d))) {
+                          _.copyToColumnVector()
+                        }
+                      case _ =>
+                        throw new IllegalStateException("We don't cast any type besides Decimal " +
+                            "with scale < 0")
+                    }
                   }
-                }
-              )
-            }
-          } { col =>
-            withResource(new Table(col: _*)) { t =>
-              val g = GpuColumnVector.from(t, originalSelectedAttributes.map(_.dataType).toArray)
-              val end = System.currentTimeMillis()
-              val d = new Data("read", end - start, "PCBS", "true")
-              Data.add(d)
-              g
+                )
+              }
+            } { col =>
+              withResource(new Table(col: _*)) { t =>
+                GpuColumnVector.from(t, originalSelectedAttributes.map(_.dataType).toArray)
+              }
             }
           }
         }
@@ -562,25 +555,21 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
       val batches = convertCachedBatchToColumnarInternal(input, cachedSchemaWithNames,
         selectedSchemaWithNames, newSelectedAttributes)
       val cbRdd = batches.map(batch => {
-        val start = System.currentTimeMillis()
-        val cb = withResource(batch) { gpuBatch =>
-          val cols = GpuColumnVector.extractColumns(gpuBatch)
-          new ColumnarBatch(cols.safeMap(_.copyToHost()).toArray, gpuBatch.numRows())
+        withResource(new NvtxRange("read pcbs", NvtxColor.GREEN)) { _ =>
+          withResource(batch) { gpuBatch =>
+            val cols = GpuColumnVector.extractColumns(gpuBatch)
+            new ColumnarBatch(cols.safeMap(_.copyToHost()).toArray, gpuBatch.numRows())
+          }
         }
-        val end = System.currentTimeMillis()
-        TaskContext.get().addTaskCompletionListener(Data)
-        val d = new Data("read", end - start, "PCBS", "true (broughtback)")
-        Data.add(d)
-        cb
       })
       cbRdd.mapPartitions(iter => CloseableColumnBatchIterator(iter))
     } else {
-      val origSelectedAttributesWithUnambiguousNames = 
+      throw new IllegalStateException("don't support falling back to the CPU")
+      val origSelectedAttributesWithUnambiguousNames =
         sanitizeColumnNames(newSelectedAttributes, selectedSchemaWithNames)
       val broadcastedConf = SparkSession.active.sparkContext.broadcast(conf.getAllConfs)
       input.mapPartitions {
         cbIter => {
-          TaskContext.get().addTaskCompletionListener(Data)
           new CachedBatchIteratorConsumer(cbIter, cachedSchemaWithNames, selectedSchemaWithNames,
             cacheAttributes, origSelectedAttributesWithUnambiguousNames, broadcastedConf)
             .getColumnBatchIterator
@@ -604,7 +593,7 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
       cacheAttributes: Seq[Attribute],
       selectedAttributes: Seq[Attribute],
       conf: SQLConf): RDD[InternalRow] = {
-    TaskContext.get().addTaskCompletionListener(Data)
+    throw new IllegalStateException("don't support falling back to the CPU")
     val (cachedSchemaWithNames, selectedSchemaWithNames) =
       getSupportedSchemaFromUnsupported(cacheAttributes, selectedAttributes)
     val newSelectedAttributes = sanitizeColumnNames(selectedAttributes, selectedSchemaWithNames)
@@ -739,16 +728,14 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
         }
 
         override def next(): InternalRow = {
-          val start = System.currentTimeMillis()
-          // will return the next InternalRow if hasNext() is true, otherwise throw
-          val r = if (hasNext) {
-            iter.next()
-          } else {
-            throw new NoSuchElementException("no elements found")
+          withResource(new NvtxRange("read pcbs", NvtxColor.GREEN)) { _ =>
+            // will return the next InternalRow if hasNext() is true, otherwise throw
+            if (hasNext) {
+              iter.next()
+            } else {
+              throw new NoSuchElementException("no elements found")
+            }
           }
-          val end = System.currentTimeMillis()
-          Data.add(new Data("read", end - start, "PCBS", "false"))
-          r
         }
 
         /**
@@ -1060,16 +1047,14 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
       }
 
       override def next(): ColumnarBatch = {
-        val start = System.currentTimeMillis()
-        // will return the next ColumnarBatch if hasNext() is true, otherwise throw
-        val cb = if (hasNext) {
-          iter.next()
-        } else {
-          throw new NoSuchElementException("no elements found")
+        withResource(new NvtxRange("read pcbs", NvtxColor.GREEN)) { _ =>
+          // will return the next ColumnarBatch if hasNext() is true, otherwise throw
+          if (hasNext) {
+            iter.next()
+          } else {
+            throw new NoSuchElementException("no elements found")
+          }
         }
-        val end = System.currentTimeMillis()
-        Data.add(new Data("read", end - start, "PCBS", "false"))
-        cb
       }
     }
   }
@@ -1231,66 +1216,64 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
       }.sum
 
       override def next(): CachedBatch = {
-        val start = System.currentTimeMillis()
-        if (queue.isEmpty) {
-          // to store a row if we have read it but there is no room in the parquet file to put it
-          // we will put it in the next CachedBatch
-          var leftOverRow: Option[InternalRow] = None
-          val rowIterator = getIterator
-          while (rowIterator.hasNext || leftOverRow.nonEmpty) {
-            // Each partition will be a single parquet file
-            var rows = 0
-            // at least a single block
-            val stream = new ByteArrayOutputStream(ByteArrayOutputFile.BLOCK_SIZE)
-            val outputFile: OutputFile = new ByteArrayOutputFile(stream)
-            conf.setConfString(SparkShimImpl.parquetRebaseWriteKey,
-              LegacyBehaviorPolicy.CORRECTED.toString)
-            val recordWriter = SQLConf.withExistingConf(conf) {
-              parquetOutputFileFormat.getRecordWriter(outputFile, hadoopConf)
-            }
-            var totalSize = 0
-            while ((rowIterator.hasNext || leftOverRow.nonEmpty)
-                && totalSize < bytesAllowedPerBatch) {
+        withResource(new NvtxRange("write pcbs", NvtxColor.RED)) { _ =>
+          if (queue.isEmpty) {
+            // to store a row if we have read it but there is no room in the parquet file to put it
+            // we will put it in the next CachedBatch
+            var leftOverRow: Option[InternalRow] = None
+            val rowIterator = getIterator
+            while (rowIterator.hasNext || leftOverRow.nonEmpty) {
+              // Each partition will be a single parquet file
+              var rows = 0
+              // at least a single block
+              val stream = new ByteArrayOutputStream(ByteArrayOutputFile.BLOCK_SIZE)
+              val outputFile: OutputFile = new ByteArrayOutputFile(stream)
+              conf.setConfString(SparkShimImpl.parquetRebaseWriteKey,
+                LegacyBehaviorPolicy.CORRECTED.toString)
+              val recordWriter = SQLConf.withExistingConf(conf) {
+                parquetOutputFileFormat.getRecordWriter(outputFile, hadoopConf)
+              }
+              var totalSize = 0
+              while ((rowIterator.hasNext || leftOverRow.nonEmpty)
+                  && totalSize < bytesAllowedPerBatch) {
 
-              val row = if (leftOverRow.nonEmpty) {
-                val a = leftOverRow.get
-                leftOverRow = None // reset value
-                a
-              } else {
-                rowIterator.next()
-              }
-              totalSize += {
-                row match {
-                  case r: UnsafeRow =>
-                    r.getSizeInBytes
-                  case _ =>
-                    estimatedSize
-                }
-              }
-              if (totalSize <= bytesAllowedPerBatch) {
-                rows += 1
-                if (rows < 0) {
-                  throw new IllegalStateException("CachedBatch doesn't support rows larger " +
-                      "than Int.MaxValue")
-                }
-                recordWriter.write(null, row)
-              } else {
-                leftOverRow = Some(if (row.isInstanceOf[UnsafeRow]) {
-                  row.copy()
+                val row = if (leftOverRow.nonEmpty) {
+                  val a = leftOverRow.get
+                  leftOverRow = None // reset value
+                  a
                 } else {
-                  row
-                })
+                  rowIterator.next()
+                }
+                totalSize += {
+                  row match {
+                    case r: UnsafeRow =>
+                      r.getSizeInBytes
+                    case _ =>
+                      estimatedSize
+                  }
+                }
+                if (totalSize <= bytesAllowedPerBatch) {
+                  rows += 1
+                  if (rows < 0) {
+                    throw new IllegalStateException("CachedBatch doesn't support rows larger " +
+                        "than Int.MaxValue")
+                  }
+                  recordWriter.write(null, row)
+                } else {
+                  leftOverRow = Some(if (row.isInstanceOf[UnsafeRow]) {
+                    row.copy()
+                  } else {
+                    row
+                  })
+                }
               }
+              // passing null as context isn't used in this method
+              recordWriter.close(null)
+              queue += ParquetCachedBatch(rows, stream.toByteArray)
             }
-            // passing null as context isn't used in this method
-            recordWriter.close(null)
-            queue += ParquetCachedBatch(rows, stream.toByteArray)
           }
+          queue.dequeue()
         }
-        val end = System.currentTimeMillis()
-        val cb = queue.dequeue()
-        Data.add(new Data("write", end - start, "PCBS", "false"))
-        cb
       }
     }
 
@@ -1402,7 +1385,6 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
       storageLevel: StorageLevel,
       conf: SQLConf): RDD[CachedBatch] = {
 
-    TaskContext.get().addTaskCompletionListener(Data)
     val rapidsConf = new RapidsConf(conf)
     val useCompression = conf.useCompression
     val bytesAllowedPerBatch = getBytesAllowedPerBatch(conf)
@@ -1419,6 +1401,7 @@ protected class ParquetCachedBatchSerializer extends GpuCachedBatchSerializer wi
           schema.toStructType, bytesAllowedPerBatch, useCompression))
       })
     } else {
+      throw new IllegalStateException("don't support falling back to the CPU")
       val broadcastedConf = SparkSession.active.sparkContext.broadcast(conf.getAllConfs)
       input.mapPartitions {
         cbIter =>
