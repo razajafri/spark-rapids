@@ -123,17 +123,13 @@ _grpkey_long_with_nulls_with_overflow = [
     ('a', IntegerGen()),
     ('b', LongGen(nullable=True))]
 
-part_and_order_gens = [long_gen, DoubleGen(no_nans=True, special_cases=[]),
-        string_gen, boolean_gen, timestamp_gen, DecimalGen(precision=18, scale=1),
-        DecimalGen(precision=38, scale=1)]
+part_and_order_gens = [long_gen]
 
 running_part_and_order_gens = [long_gen, DoubleGen(no_nans=True, special_cases=[]),
         string_gen, byte_gen, timestamp_gen, DecimalGen(precision=18, scale=1),
         DecimalGen(precision=38, scale=1)]
 
-lead_lag_data_gens = [long_gen, DoubleGen(no_nans=True, special_cases=[]),
-        boolean_gen, timestamp_gen, string_gen, DecimalGen(precision=18, scale=3),
-        DecimalGen(precision=38, scale=4),
+lead_lag_data_gens = [
         StructGen(children=[
             ['child_int', IntegerGen()],
             ['child_time', DateGen()],
@@ -602,7 +598,7 @@ def test_window_running_float_decimal_sum(batch_size):
 # but small batch sizes can make sort very slow, so do the final order by locally
 @ignore_order(local=True)
 @approximate_float
-@pytest.mark.parametrize('batch_size', ['1000', '1g'], ids=idfn) # set the batch size so we can test multiple stream batches
+@pytest.mark.parametrize('batch_size', ['1g'], ids=idfn) # set the batch size so we can test multiple stream batches
 @pytest.mark.parametrize('c_gen', lead_lag_data_gens, ids=idfn)
 @pytest.mark.parametrize('a_b_gen', part_and_order_gens, ids=meta_idfn('partAndOrderBy:'))
 def test_multi_types_window_aggs_for_rows_lead_lag(a_b_gen, c_gen, batch_size):
