@@ -34,8 +34,8 @@ import org.apache.spark.sql.Strategy
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.{ColumnarRule, SparkPlan}
+import org.apache.spark.sql.rapids.AdaptiveSparkPlanHelperImpl
 import org.apache.spark.sql.rapids.execution.UnshimmedTrampolineUtil
-import org.apache.spark.sql.rapids.shims.AdaptiveSparkPlanHelperImpl
 import org.apache.spark.util.MutableURLClassLoader
 
 /*
@@ -418,6 +418,6 @@ object ShimLoader extends Logging {
 
   def newAdaptiveSparkPlanHelperShim(): AdaptiveSparkPlanHelperImpl =
     ShimReflectionUtils.newInstanceOf[AdaptiveSparkPlanHelperImpl](
-      "org.apache.spark.sql.rapids.shims.AdaptiveSparkPlanHelperImpl"
+      "org.apache.spark.sql.rapids.AdaptiveSparkPlanHelperImpl"
     )
 }
