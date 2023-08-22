@@ -50,7 +50,7 @@ import org.apache.spark.sql.vectorized.ColumnarBatch
  */
 case class GpuAggregateInPandasExec(
     gpuGroupingExpressions: Seq[NamedExpression],
-    udfExpressions: Seq[GpuPythonUDF],
+    udfExpressions: Seq[GpuPythonFunction],
     pyOutAttributes: Seq[Attribute],
     resultExpressions: Seq[NamedExpression],
     child: SparkPlan)(
@@ -73,14 +73,15 @@ case class GpuAggregateInPandasExec(
     }
   }
 
-  private def collectFunctions(udf: GpuPythonUDF): (ChainedPythonFunctions, Seq[Expression]) = {
+  private def collectFunctions(udf: GpuPythonFunction):
+  (ChainedPythonFunctions, Seq[Expression]) = {
     udf.children match {
-      case Seq(u: GpuPythonUDF) =>
+      case Seq(u: GpuPythonFunction) =>
         val (chained, children) = collectFunctions(u)
         (ChainedPythonFunctions(chained.funcs ++ Seq(udf.func)), children)
       case children =>
         // There should not be any other UDFs, or the children can't be evaluated directly.
-        assert(children.forall(_.find(_.isInstanceOf[GpuPythonUDF]).isEmpty))
+        assert(children.forall(_.find(_.isInstanceOf[GpuPythonFunction]).isEmpty))
         (ChainedPythonFunctions(Seq(udf.func)), udf.children)
     }
   }
@@ -245,7 +246,7 @@ case class GpuAggregateInPandasExec(
 
 object GpuAggregateInPandasExec {
   def apply(gpuGroupingExpressions: Seq[NamedExpression],
-      udfExpressions: Seq[GpuPythonUDF],
+      udfExpressions: Seq[GpuPythonFunction],
       resultExpressions: Seq[NamedExpression],
       child: SparkPlan)(
       cpuGroupingExpressions: Seq[NamedExpression]) = {
@@ -254,7 +255,7 @@ object GpuAggregateInPandasExec {
   }
 
   def apply(gpuGroupingExpressions: Seq[NamedExpression],
-      udfExpressions: Seq[GpuPythonUDF],
+      udfExpressions: Seq[GpuPythonFunction],
       pyOutAttributes: Seq[Attribute],
       resultExpressions: Seq[NamedExpression],
       child: SparkPlan)(
