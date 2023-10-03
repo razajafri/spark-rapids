@@ -151,7 +151,12 @@ def define_deps(spark_version, scala_version):
         deps += [Artifact('org.apache.spark', f'spark-common-utils_{scala_version}',
                         f'{spark_prefix}--common--utils--common-utils-hive-2.3__hadoop-3.2_2.12_deploy.jar'),
                 Artifact('org.apache.spark', f'spark-sql-api_{scala_version}',
-                         f'{spark_prefix}--sql--api--sql-api-hive-2.3__hadoop-3.2_2.12_deploy.jar')]
+                         f'{spark_prefix}--sql--api--sql-api-hive-2.3__hadoop-3.2_2.12_deploy.jar'), 
+                Artifact('shaded.parquet.org.apache.thrift', f'shaded-parquet-thrift_{scala_version}',
+                         f'{spark_prefix}--third_party--parquet-mr--parquet-format-structures--parquet-format-structures-shaded--340378784--org.apache.thrift__libthrift__0.16.0.jar'),
+                Artifact('org.apache.parquet', f'parquet-format-internal_{scala_version}',
+                        f'{spark_prefix}--third_party--parquet-mr--parquet-format-structures--parquet-format-structures-shaded--801981412--libparquet-thrift.jar')]
+
     return deps
 
 def install_deps(deps, spark_version_to_install_databricks_jars, m2_dir, jar_dir, file):

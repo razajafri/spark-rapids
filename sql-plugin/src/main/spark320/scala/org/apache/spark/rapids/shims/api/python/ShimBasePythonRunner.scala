@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import org.apache.spark.{SparkEnv, TaskContext}
 import org.apache.spark.api.python.BasePythonRunner
+import org.apache.spark.sql.execution.python.WriterThread
 
 abstract class ShimBasePythonRunner[IN, OUT](
     funcs : scala.Seq[org.apache.spark.api.python.ChainedPythonFunctions],

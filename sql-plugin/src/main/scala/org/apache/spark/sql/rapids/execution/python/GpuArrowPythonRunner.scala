@@ -31,7 +31,7 @@ import com.nvidia.spark.rapids.ScalableTaskCompletion.onTaskCompletion
 import org.apache.spark.{SparkEnv, TaskContext}
 import org.apache.spark.api.python._
 import org.apache.spark.rapids.shims.api.python.ShimBasePythonRunner
-import org.apache.spark.sql.execution.python.PythonUDFRunner
+import org.apache.spark.sql.execution.python.{PythonUDFRunner, WriterThread}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.vectorized.ColumnarBatch
