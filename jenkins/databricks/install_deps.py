@@ -39,6 +39,10 @@ def define_deps(spark_version, scala_version):
     elif spark_version.startswith('3.3'):
         spark_prefix = '----ws_3_3'
         mvn_prefix = '--mvn'
+    elif spark_version.startswith('3.4'):
+        spark_prefix = '----ws_3_4'
+        mvn_prefix = '--mvn'
+
 
     spark_suffix = f'hive-{hive_version}__hadoop-{hadoop_version}_{scala_version}'
 
@@ -82,13 +86,17 @@ def define_deps(spark_version, scala_version):
 
         # Parquet
         Artifact('org.apache.parquet', 'parquet-hadoop',
-                 f'{prefix_ws_sp_mvn_hadoop}--org.apache.parquet--parquet-hadoop--org.apache.parquet__parquet-hadoop__*-databricks*.jar'),
+                 f'{spark_prefix}--third_party--parquet-mr--parquet-hadoop--parquet-hadoop-shaded--564196855--libparquet-hadoop-internal.jar'),
+
         Artifact('org.apache.parquet', 'parquet-common',
-                 f'{prefix_ws_sp_mvn_hadoop}--org.apache.parquet--parquet-common--org.apache.parquet__parquet-common__*-databricks*.jar'),
+                 f'{spark_prefix}--third_party--parquet-mr--parquet-common--parquet-common-shaded--434246589--libparquet-common-internal.jar'),
+
         Artifact('org.apache.parquet', 'parquet-column',
-                 f'{prefix_ws_sp_mvn_hadoop}--org.apache.parquet--parquet-column--org.apache.parquet__parquet-column__*-databricks*.jar'),
+                 f'{spark_prefix}--third_party--parquet-mr--parquet-column--parquet-column-shaded--434224424--libparquet-column-internal.jar'),
+
         Artifact('org.apache.parquet', 'parquet-format',
-                 f'{prefix_ws_sp_mvn_hadoop}--org.apache.parquet--parquet-format-structures--org.apache.parquet__parquet-format-structures__*-databricks*.jar'),
+                 f'{spark_prefix}--third_party--parquet-mr--parquet-format-structures--parquet-format-structures-shaded--801981412--libparquet-format-structures-internal.jar'),
+
 
         # Orc
         Artifact('org.apache.orc', 'orc-core',
@@ -139,6 +147,11 @@ def define_deps(spark_version, scala_version):
         deps += Artifact('org.apache.logging.log4j', 'log4j-core',
                          f'{prefix_ws_sp_mvn_hadoop}--org.apache.logging.log4j--log4j-core--org.apache.logging.log4j__log4j-core__*.jar'),
 
+    if spark_version.startswith('3.4'):
+        deps += [Artifact('org.apache.spark', f'spark-common-utils_{scala_version}',
+                        f'{spark_prefix}--common--utils--common-utils-hive-2.3__hadoop-3.2_2.12_deploy.jar'),
+                Artifact('org.apache.spark', f'spark-sql-api_{scala_version}',
+                         f'{spark_prefix}--sql--api--sql-api-hive-2.3__hadoop-3.2_2.12_deploy.jar')]
     return deps
 
 def install_deps(deps, spark_version_to_install_databricks_jars, m2_dir, jar_dir, file):
