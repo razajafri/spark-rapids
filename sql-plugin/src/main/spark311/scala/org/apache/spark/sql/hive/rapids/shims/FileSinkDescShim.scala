@@ -44,7 +44,7 @@ import org.apache.hadoop.hive.ql.plan.{FileSinkDesc, TableDesc}
 
 object FileSinkDescShim {
   def getPartitionColumns(tmpLocation: Path, tableDesc: TableDesc): String = {
-    val fileSinkConf = new FileSinkDesc(tmpLocation.toString, tableDesc, false)
+    val fileSinkConf = new FileSinkDesc(tmpLocation, tableDesc, false)
     fileSinkConf.getTableInfo.getProperties.getProperty("partition_columns")
   }
 }
