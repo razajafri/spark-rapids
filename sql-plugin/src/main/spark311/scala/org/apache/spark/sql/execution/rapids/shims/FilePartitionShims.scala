@@ -42,7 +42,7 @@ package org.apache.spark.sql.execution.rapids.shims
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.{CompressionCodecFactory, SplittableCompressionCodec}
-
+import org.apache.spark.paths.SparkPath
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.PartitionedFileUtil
 import org.apache.spark.sql.execution.datasources._
@@ -52,7 +52,7 @@ object FilePartitionShims {
   def getPartitions(selectedPartitions: Array[PartitionDirectory]): Array[PartitionedFile] = {
     selectedPartitions.flatMap { p =>
       p.files.map { f =>
-        PartitionedFileUtil.getPartitionedFile(f, f.getPath, p.values)
+        PartitionedFileUtil.getPartitionedFile(f, p.values, Some(SparkPath.fromPath(f.getPath)))
       }
     }
   }
@@ -77,7 +77,6 @@ object FilePartitionShims {
         PartitionedFileUtil.splitFiles(
           sparkSession,
           f,
-          f.getPath,
           isSplitable = canBeSplit(f.getPath, hadoopConf),
           maxSplitBytes,
           partition.values
@@ -100,7 +99,6 @@ object FilePartitionShims {
         PartitionedFileUtil.splitFiles(
           sparkSession = relation.sparkSession,
           file = file,
-          filePath = file.getPath,
           isSplitable = isSplitable,
           maxSplitBytes = maxSplitBytes,
           partitionValues = partition.values

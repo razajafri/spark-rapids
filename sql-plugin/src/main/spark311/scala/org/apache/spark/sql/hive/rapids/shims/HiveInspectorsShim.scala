@@ -49,6 +49,7 @@ trait HiveInspectorsShim extends HiveInspectors {
       wrappers: Array[(Any) => Any],
       cache: Array[AnyRef],
       dataTypes: Array[DataType]): Array[AnyRef] = {
-    wrap(row, wrappers, cache, dataTypes)
+    // TODO: get rid of the 4th parameter in wrapRow
+    wrap(row, wrappers, cache)
   }
 }

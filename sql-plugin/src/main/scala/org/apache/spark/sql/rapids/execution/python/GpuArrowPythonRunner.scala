@@ -137,8 +137,8 @@ trait GpuPythonArrowOutput { _: GpuPythonRunnerBase[_] =>
       private var batchLoaded = true
 
       protected override def read(): ColumnarBatch = {
-        if (writerThread.exception.isDefined) {
-          throw writerThread.exception.get
+        if (writerThread._exception != null) {
+          throw writerThread._exception
         }
         try {
           // Because of batching and other things we have to be sure that we release the semaphore

@@ -46,7 +46,7 @@ import org.apache.spark.sql.execution.python.WriterThread
 abstract class ShimBasePythonRunner[IN, OUT](
     funcs : scala.Seq[org.apache.spark.api.python.ChainedPythonFunctions],
     evalType : scala.Int, argOffsets : scala.Array[scala.Array[scala.Int]]
-) extends BasePythonRunner[IN, OUT](funcs, evalType, argOffsets) {
+) extends BasePythonRunner[IN, OUT](funcs, evalType, argOffsets, None) {
   protected abstract class ShimReaderIterator(
     stream: DataInputStream,
     writerThread: WriterThread,

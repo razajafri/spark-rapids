@@ -33,11 +33,11 @@ import org.apache.spark.sql.hive.execution.InsertIntoHiveTable
 trait HiveProviderCmdShims extends HiveProvider {
 
   def createFunction(a: HiveSimpleUDF): UDF = {
-    a.function
+    a.funcWrapper.createFunction()
   }
 
   def createFunction(a: HiveGenericUDF): GenericUDF = {
-    a.function
+    a.funcWrapper.createFunction()
   }
 
 
