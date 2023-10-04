@@ -85,7 +85,6 @@
         <profile>
             <id>release311</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
                 <property>
                     <name>buildver</name>
                     <value>311</value>
@@ -528,6 +527,7 @@
             <!-- Note that 332db backports many features from Spark3.4.0 -->
             <id>release341db</id>
             <activation>
+                <activeByDefault>true</activeByDefault>
                 <property>
                     <name>buildver</name>
                     <value>341db</value>
@@ -554,27 +554,6 @@
             <modules>
                 <module>shim-deps/databricks</module>
                 <module>delta-lake/delta-spark332db</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>release350</id>
-            <activation>
-                <property>
-                    <name>buildver</name>
-                    <value>350</value>
-                </property>
-            </activation>
-            <properties>
-                <buildver>350</buildver>
-                <spark.version>${spark350.version}</spark.version>
-                <spark.test.version>${spark350.version}</spark.test.version>
-                <parquet.hadoop.version>1.13.1</parquet.hadoop.version>
-                <spark.shim.sources>${spark350.sources}</spark.shim.sources>
-                <iceberg.version>${spark330.iceberg.version}</iceberg.version>
-                <slf4j.version>2.0.7</slf4j.version>
-            </properties>
-            <modules>
-                <module>delta-lake/delta-stub</module>
             </modules>
         </profile>
         <profile>
