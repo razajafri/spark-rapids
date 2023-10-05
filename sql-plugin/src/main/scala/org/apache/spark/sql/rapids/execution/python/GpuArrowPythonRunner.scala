@@ -20,7 +20,6 @@
 package org.apache.spark.sql.rapids.execution.python
 
 import java.io.{DataInputStream, DataOutputStream}
-import java.net.Socket
 import java.util.concurrent.atomic.AtomicBoolean
 
 import ai.rapids.cudf._
@@ -31,7 +30,7 @@ import com.nvidia.spark.rapids.ScalableTaskCompletion.onTaskCompletion
 import org.apache.spark.{SparkEnv, TaskContext}
 import org.apache.spark.api.python._
 import org.apache.spark.rapids.shims.api.python.ShimBasePythonRunner
-import org.apache.spark.sql.execution.python.{PythonUDFRunner, WriterThread}
+import org.apache.spark.sql.execution.python.PythonUDFRunner
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.vectorized.ColumnarBatch
@@ -101,28 +100,28 @@ trait GpuPythonArrowOutput { _: GpuPythonRunnerBase[_] =>
 
   protected def newReaderIterator(
       stream: DataInputStream,
-      writerThread: WriterThread,
+      writer: Writer,
       startTime: Long,
       env: SparkEnv,
-      worker: Socket,
+      worker: PythonWorker,
       releasedOrClosed: AtomicBoolean,
       context: TaskContext
   ): Iterator[ColumnarBatch] = {
-    newReaderIterator(stream, writerThread, startTime, env, worker, None, releasedOrClosed,
+    newReaderIterator(stream, writer, startTime, env, worker, None, releasedOrClosed,
       context)
   }
 
   protected def newReaderIterator(
       stream: DataInputStream,
-      writerThread: WriterThread,
+      writer: Writer,
       startTime: Long,
       env: SparkEnv,
-      worker: Socket,
+      worker: PythonWorker,
       pid: Option[Int],
       releasedOrClosed: AtomicBoolean,
       context: TaskContext): Iterator[ColumnarBatch] = {
 
-    new ShimReaderIterator(stream, writerThread, startTime, env, worker, pid, releasedOrClosed,
+    new ShimReaderIterator(stream, writer, startTime, env, worker, pid, releasedOrClosed,
       context) {
 
       private[this] var arrowReader: StreamedTableReader = _
@@ -137,8 +136,8 @@ trait GpuPythonArrowOutput { _: GpuPythonRunnerBase[_] =>
       private var batchLoaded = true
 
       protected override def read(): ColumnarBatch = {
-        if (writerThread._exception != null) {
-          throw writerThread._exception
+        if (writer.exception.isDefined) {
+          throw writer.exception.get
         }
         try {
           // Because of batching and other things we have to be sure that we release the semaphore
@@ -220,13 +219,13 @@ abstract class GpuArrowPythonRunnerBase(
     "Pandas execution requires more than 4 bytes. Please set higher buffer. " +
         s"Please change '${SQLConf.PANDAS_UDF_BUFFER_SIZE.key}'.")
 
-  protected override def newWriterThread(
+  protected override def newWriter(
       env: SparkEnv,
-      worker: Socket,
+      worker: PythonWorker,
       inputIterator: Iterator[ColumnarBatch],
       partitionIndex: Int,
-      context: TaskContext): WriterThread = {
-    new WriterThread(env, worker, inputIterator, partitionIndex, context) {
+      context: TaskContext): Writer = {
+    new Writer(env, worker, inputIterator, partitionIndex, context) {
 
       protected override def writeCommand(dataOut: DataOutputStream): Unit = {
 
@@ -240,7 +239,7 @@ abstract class GpuArrowPythonRunnerBase(
         PythonUDFRunner.writeUDFs(dataOut, funcs, argOffsets)
       }
 
-      protected override def writeIteratorToStream(dataOut: DataOutputStream): Unit = {
+      protected override def writeNextInputToStream(dataOut: DataOutputStream): Boolean = {
         val writer = {
           val builder = ArrowIPCWriterOptions.builder()
           builder.withMaxChunkSize(batchSize)

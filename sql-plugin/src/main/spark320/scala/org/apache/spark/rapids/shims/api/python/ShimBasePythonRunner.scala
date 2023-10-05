@@ -36,12 +36,10 @@ spark-rapids-shim-json-lines ***/
 package org.apache.spark.rapids.shims.api.python
 
 import java.io.DataInputStream
-import java.net.Socket
 import java.util.concurrent.atomic.AtomicBoolean
 
 import org.apache.spark.{SparkEnv, TaskContext}
-import org.apache.spark.api.python.BasePythonRunner
-import org.apache.spark.sql.execution.python.WriterThread
+import org.apache.spark.api.python.{BasePythonRunner, PythonWorker}
 
 abstract class ShimBasePythonRunner[IN, OUT](
     funcs : scala.Seq[org.apache.spark.api.python.ChainedPythonFunctions],
@@ -49,13 +47,13 @@ abstract class ShimBasePythonRunner[IN, OUT](
 ) extends BasePythonRunner[IN, OUT](funcs, evalType, argOffsets, None) {
   protected abstract class ShimReaderIterator(
     stream: DataInputStream,
-    writerThread: WriterThread,
+    writer: Writer,
     startTime: Long,
     env: SparkEnv,
-    worker: Socket,
+    worker: PythonWorker,
     pid: Option[Int],
     releasedOrClosed: AtomicBoolean,
     context: TaskContext
-  ) extends ReaderIterator(stream, writerThread, startTime, env, worker, pid,
+  ) extends ReaderIterator(stream, writer, startTime, env, worker, pid,
     releasedOrClosed, context)
 }
