@@ -39,7 +39,9 @@ object ParquetCVShims {
       missingColumns: java.util.Set[ParquetColumn],
       isTopLevel: Boolean): ParquetColumnVector = {
     val defaultValue = if (sparkSchema != null) {
-      sparkSchema.existenceDefaultValues(idx)
+      if (sparkSchema.existenceDefaultValuesArray.isDefined) {
+        sparkSchema.existenceDefaultValuesArray.get(idx)
+      } else null
     } else null
     new ParquetColumnVector(column, vector, capacity, memoryMode, missingColumns, isTopLevel,
       defaultValue)

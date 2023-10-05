@@ -82,7 +82,7 @@ object RapidsErrorUtils extends RapidsErrorUtilsFor330plus {
   }
 
   def sqlArrayIndexNotStartAtOneError(): RuntimeException = {
-    QueryExecutionErrors.elementAtByIndexZeroError(context = null)
+    QueryExecutionErrors.invalidIndexOfZeroError(context = null)
   }
   
   override def intervalDivByZeroError(origin: Origin): ArithmeticException = {
