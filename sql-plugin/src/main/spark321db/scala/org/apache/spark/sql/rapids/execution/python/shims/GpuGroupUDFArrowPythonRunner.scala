@@ -84,7 +84,8 @@ class GpuGroupUDFArrowPythonRunner(
         PythonUDFRunner.writeUDFs(dataOut, funcs, argOffsets)
       }
 
-      protected override def writeIteratorToStream(dataOut: DataOutputStream): Unit = {
+      override def writeNextInputToStream(dataOut: DataOutputStream): Boolean = {
+        var wrote = false
         // write out number of columns
         Utils.tryWithSafeFinally {
           val builder = ArrowIPCWriterOptions.builder()
@@ -102,6 +103,7 @@ class GpuGroupUDFArrowPythonRunner(
               }
           }
           while(inputIterator.hasNext) {
+            wrote = false
             val writer = {
               // write 1 out to indicate there is more to read
               dataOut.writeInt(1)
@@ -113,6 +115,7 @@ class GpuGroupUDFArrowPythonRunner(
             withResource(new NvtxRange("write python batch", NvtxColor.DARK_GREEN)) { _ =>
               // The callback will handle closing table and releasing the semaphore
               writer.write(table)
+              wrote = true
             }
             writer.close()
             dataOut.flush()
@@ -125,6 +128,7 @@ class GpuGroupUDFArrowPythonRunner(
           dataOut.writeInt(0)
           dataOut.flush()
         }
+        wrote
       }
     }
   }

@@ -46,12 +46,19 @@ case class GpuShuffleExchangeExec(
 
   override def numPartitions: Int = shuffleDependencyColumnar.partitioner.numPartitions
 
-  override def getShuffleRDD(partitionSpecs: Array[ShufflePartitionSpec]): RDD[_] = {
+  override def getShuffleRDD(
+      partitionSpecs: Array[ShufflePartitionSpec],
+      lazyFetching: Boolean): RDD[_] = {
     new ShuffledBatchRDD(shuffleDependencyColumnar, metrics ++ readMetrics, partitionSpecs)
   }
 
   // DB SPECIFIC - throw if called since we don't know how its used
-  override def withNewOutputPartitioning(outputPartitioning: Partitioning) = {
+  override def withNewNumPartitions(numPartitions: Int) = {
+    throw new UnsupportedOperationException
+  }
+
+  // DB SPECIFIC - throw if called since we don't know how its used
+  override def targetOutputPartitioning: Partitioning = {
     throw new UnsupportedOperationException
   }
 

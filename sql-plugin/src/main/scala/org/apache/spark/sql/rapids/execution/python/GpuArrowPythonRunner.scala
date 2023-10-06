@@ -239,7 +239,7 @@ abstract class GpuArrowPythonRunnerBase(
         PythonUDFRunner.writeUDFs(dataOut, funcs, argOffsets)
       }
 
-      protected override def writeNextInputToStream(dataOut: DataOutputStream): Boolean = {
+      override def writeNextInputToStream(dataOut: DataOutputStream): Boolean = {
         val writer = {
           val builder = ArrowIPCWriterOptions.builder()
           builder.withMaxChunkSize(batchSize)
@@ -258,14 +258,17 @@ abstract class GpuArrowPythonRunnerBase(
           Table.writeArrowIPCChunked(builder.build(), new BufferToStreamWriter(dataOut))
         }
 
+        var wrote = false
         Utils.tryWithSafeFinally {
           while(inputIterator.hasNext) {
+            wrote = false
             val table = withResource(inputIterator.next()) { nextBatch =>
               GpuColumnVector.from(nextBatch)
             }
             withResource(new NvtxRange("write python batch", NvtxColor.DARK_GREEN)) { _ =>
               // The callback will handle closing table and releasing the semaphore
               writer.write(table)
+              wrote = true
             }
           }
           // The iterator can grab the semaphore even on an empty batch
@@ -275,6 +278,7 @@ abstract class GpuArrowPythonRunnerBase(
           dataOut.flush()
           if (onDataWriteFinished != null) onDataWriteFinished()
         }
+        wrote
       }
     }
   }

@@ -23,7 +23,7 @@ import com.nvidia.spark.rapids.Arm.withResource
 import com.nvidia.spark.rapids.python.PythonWorkerSemaphore
 import com.nvidia.spark.rapids.shims.ShimUnaryExecNode
 
-import org.apache.spark.{ContextAwareIterator, TaskContext}
+import org.apache.spark.TaskContext
 import org.apache.spark.api.python.ChainedPythonFunctions
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.{AttributeSet, Expression}
@@ -72,9 +72,7 @@ trait GpuMapInBatchExec extends ShimUnaryExecNode with GpuPythonExecBase {
         PythonWorkerSemaphore.acquireIfNecessary(context)
       }
 
-      val contextAwareIter = new ContextAwareIterator(context, inputIter)
-
-      val pyInputIterator = new RebatchingRoundoffIterator(contextAwareIter, pyInputTypes,
+      val pyInputIterator = new RebatchingRoundoffIterator(inputIter, pyInputTypes,
           batchSize, numInputRows, numInputBatches)
         .map { batch =>
           // Here we wrap it via another column so that Python sides understand it

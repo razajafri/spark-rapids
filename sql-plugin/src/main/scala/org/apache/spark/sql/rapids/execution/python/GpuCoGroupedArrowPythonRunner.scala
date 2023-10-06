@@ -68,24 +68,27 @@ class GpuCoGroupedArrowPythonRunner(
         PythonUDFRunner.writeUDFs(dataOut, funcs, argOffsets)
       }
 
-      protected override def writeNextInputToStream(dataOut: DataOutputStream): Boolean = {
+      override def writeNextInputToStream(dataOut: DataOutputStream): Boolean = {
         // For each we first send the number of dataframes in each group then send
         // first df, then send second df.  End of data is marked by sending 0.
+        var wrote = false
         while (inputIterator.hasNext) {
+          wrote = false
           dataOut.writeInt(2)
           val (leftGroupBatch, rightGroupBatch) = inputIterator.next()
           withResource(Seq(leftGroupBatch, rightGroupBatch)) { _ =>
-            writeGroupBatch(leftGroupBatch, leftSchema, dataOut)
-            writeGroupBatch(rightGroupBatch, rightSchema, dataOut)
+            wrote = writeGroupBatch(leftGroupBatch, leftSchema, dataOut)
+            wrote = writeGroupBatch(rightGroupBatch, rightSchema, dataOut)
           }
         }
         // The iterator can grab the semaphore even on an empty batch
         GpuSemaphore.releaseIfNecessary(TaskContext.get())
         dataOut.writeInt(0)
+        wrote
       }
 
       private def writeGroupBatch(groupBatch: ColumnarBatch, batchSchema: StructType,
-          dataOut: DataOutputStream): Unit = {
+          dataOut: DataOutputStream): Boolean = {
         val writer = {
           val builder = ArrowIPCWriterOptions.builder()
           builder.withMaxChunkSize(batchSize)
@@ -103,16 +106,18 @@ class GpuCoGroupedArrowPythonRunner(
           }
           Table.writeArrowIPCChunked(builder.build(), new BufferToStreamWriter(dataOut))
         }
-
+        var wrote = false
         Utils.tryWithSafeFinally {
           withResource(new NvtxRange("write python batch", NvtxColor.DARK_GREEN)) { _ =>
             // The callback will handle closing table and releasing the semaphore
             writer.write(GpuColumnVector.from(groupBatch))
+            wrote = true
           }
         } {
           writer.close()
           dataOut.flush()
         }
+        wrote
       } // end of writeGroup
     }
   } // end of newWriterThread
