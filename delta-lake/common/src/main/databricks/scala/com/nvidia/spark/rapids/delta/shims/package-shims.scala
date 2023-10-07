@@ -18,7 +18,7 @@ package com.nvidia.spark.rapids.delta.shims
 
 import com.databricks.sql.expressions.JoinedProjection
 import com.databricks.sql.transaction.tahoe.DeltaColumnMapping
-import com.databricks.sql.transaction.tahoe.stats.UsesMetadataFields
+import com.databricks.sql.transaction.tahoe.stats.ReadsMetadataFieldsEdge
 import com.databricks.sql.transaction.tahoe.util.JsonUtils
 
 import org.apache.spark.sql.catalyst.expressions.{Attribute, Expression}
