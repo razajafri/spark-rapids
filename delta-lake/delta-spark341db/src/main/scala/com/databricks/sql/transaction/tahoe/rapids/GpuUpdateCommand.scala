@@ -258,7 +258,7 @@ case class GpuUpdateCommand(
     }.asNondeterministic()
 
     val updatedDataFrame = UpdateCommand.withUpdatedColumns(
-      target,
+      target.output,
       updateExpressions,
       condition,
       targetDf

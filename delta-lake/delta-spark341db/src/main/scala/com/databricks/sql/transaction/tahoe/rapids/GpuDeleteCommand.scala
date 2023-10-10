@@ -24,7 +24,7 @@ package com.databricks.sql.transaction.tahoe.rapids
 import com.databricks.sql.transaction.tahoe.{DeltaConfigs, DeltaLog, DeltaOperations, DeltaTableUtils, DeltaUDF, OptimisticTransaction}
 import com.databricks.sql.transaction.tahoe.actions.{Action, AddCDCFile, FileAction}
 import com.databricks.sql.transaction.tahoe.commands.{DeleteCommandMetrics, DeleteMetric, DeltaCommand}
-import com.databricks.sql.transaction.tahoe.commands.MergeIntoCommand.totalBytesAndDistinctPartitionValues
+import com.databricks.sql.transaction.tahoe.commands.MergeIntoCommandBase.totalBytesAndDistinctPartitionValues
 import com.databricks.sql.transaction.tahoe.files.TahoeBatchFileIndex
 import com.databricks.sql.transaction.tahoe.rapids.GpuDeleteCommand.{rewritingFilesMsg, FINDING_TOUCHED_FILES_MSG}
 import com.nvidia.spark.rapids.delta.GpuDeltaMetricUpdateUDF

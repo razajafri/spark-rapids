@@ -26,7 +26,7 @@ import java.net.URI
 import scala.collection.mutable.ListBuffer
 
 import com.databricks.sql.transaction.tahoe._
-import com.databricks.sql.transaction.tahoe.actions.{AddFile, FileAction}
+import com.databricks.sql.transaction.tahoe.actions.{AddFile, FileAction, Protocol}
 import com.databricks.sql.transaction.tahoe.constraints.{Constraint, Constraints}
 import com.databricks.sql.transaction.tahoe.schema.InvariantViolationException
 import com.databricks.sql.transaction.tahoe.sources.DeltaSQLConf
@@ -145,8 +145,10 @@ class GpuOptimisticTransaction(
     val (data, partitionSchema) = performCDCPartition(inputData)
     val outputPath = deltaLog.dataPath
 
-    val (normalizedQueryExecution, output, generatedColumnConstraints, dataHighWaterMarks) =
-      normalizeData(deltaLog, data)
+    val (normalizedQueryExecution, output, generatedColumnConstraints, dataHighWaterMarks) = {
+      // TODO: is none ok to pass here?
+      normalizeData(deltaLog, None, data)
+    }
     val highWaterMarks = trackHighWaterMarks.getOrElse(dataHighWaterMarks)
 
     // Build a new plan with a stub GpuDeltaWrite node to work around undesired transitions between
@@ -237,8 +239,7 @@ class GpuOptimisticTransaction(
                 key.equalsIgnoreCase(DeltaOptions.COMPRESSION)
           }.toMap
       }
-
-      val deltaFileFormat = deltaLog.fileFormat(metadata)
+      val deltaFileFormat = deltaLog.fileFormat(Protocol(), metadata)
       val gpuFileFormat = if (deltaFileFormat.getClass == classOf[DeltaParquetFileFormat]) {
         new GpuParquetFileFormat
       } else {
