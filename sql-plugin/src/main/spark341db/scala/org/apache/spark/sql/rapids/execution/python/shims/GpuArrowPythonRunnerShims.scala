@@ -15,35 +15,16 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark": "311"}
-{"spark": "312"}
-{"spark": "313"}
-{"spark": "320"}
-{"spark": "321"}
-{"spark": "321cdh"}
-{"spark": "322"}
-{"spark": "323"}
-{"spark": "324"}
-{"spark": "330"}
-{"spark": "330cdh"}
-{"spark": "331"}
-{"spark": "332"}
-{"spark": "333"}
-{"spark": "340"}
-{"spark": "341"}
 {"spark": "341db"}
-{"spark": "350"}
 spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.rapids.execution.python.shims
 
-import java.io.{DataInputStream, DataOutputStream}
-import java.net.Socket
-import java.util.concurrent.atomic.AtomicBoolean
-
 import ai.rapids.cudf._
-import com.nvidia.spark.rapids._
-import com.nvidia.spark.rapids.Arm.withResource
+import com.nvidia.spark.rapids.{GpuColumnVector, GpuSemaphore}
+import com.nvidia.spark.rapids.Arm._
 import com.nvidia.spark.rapids.ScalableTaskCompletion.onTaskCompletion
+import java.io.{DataInputStream, DataOutputStream}
+import java.util.concurrent.atomic.AtomicBoolean
 
 import org.apache.spark.{SparkEnv, TaskContext}
 import org.apache.spark.api.python._
@@ -62,20 +43,35 @@ case class GpuArrowPythonRunnerShims(
   argOffsets: Array[Array[Int]],
   dedupAttrs: StructType,
   pythonOutputSchema: StructType) {
+  // Configs from DB runtime
+  val maxBytes = conf.pandasZeroConfConversionGroupbyApplyMaxBytesPerSlice
+  val zeroConfEnabled = conf.pandasZeroConfConversionGroupbyApplyEnabled
   val sessionLocalTimeZone = conf.sessionLocalTimeZone
   val pythonRunnerConf = ArrowUtilsShim.getPythonRunnerConfMap(conf)
 
   def getRunner(): GpuPythonRunnerBase[ColumnarBatch] = {
-    new GpuArrowPythonRunner(
-      chainedFunc,
-      PythonEvalType.SQL_GROUPED_MAP_PANDAS_UDF,
-      argOffsets,
-      dedupAttrs,
-      sessionLocalTimeZone,
-      pythonRunnerConf,
-      // The whole group data should be written in a single call, so here is unlimited
-      Int.MaxValue,
-      pythonOutputSchema)
+    if (zeroConfEnabled && maxBytes > 0L) {
+      new GpuGroupUDFArrowPythonRunner(
+        chainedFunc,
+        PythonEvalType.SQL_GROUPED_MAP_PANDAS_UDF,
+        argOffsets,
+        dedupAttrs,
+        sessionLocalTimeZone,
+        pythonRunnerConf,
+        // The whole group data should be written in a single call, so here is unlimited
+        Int.MaxValue,
+        pythonOutputSchema)
+    } else {
+      new GpuArrowPythonRunner(
+        chainedFunc,
+        PythonEvalType.SQL_GROUPED_MAP_PANDAS_UDF,
+        argOffsets,
+        dedupAttrs,
+        sessionLocalTimeZone,
+        pythonRunnerConf,
+        Int.MaxValue,
+        pythonOutputSchema)
+    }
   }
 }
 
@@ -103,28 +99,28 @@ trait GpuPythonArrowOutput { _: GpuPythonRunnerBase[_] =>
 
   protected def newReaderIterator(
                                    stream: DataInputStream,
-                                   writerThread: WriterThread,
+                                   writer: Writer,
                                    startTime: Long,
                                    env: SparkEnv,
-                                   worker: Socket,
+                                   worker: PythonWorker,
                                    releasedOrClosed: AtomicBoolean,
                                    context: TaskContext
                                  ): Iterator[ColumnarBatch] = {
-    newReaderIterator(stream, writerThread, startTime, env, worker, None, releasedOrClosed,
+    newReaderIterator(stream, writer, startTime, env, worker, None, releasedOrClosed,
       context)
   }
 
   protected def newReaderIterator(
                                    stream: DataInputStream,
-                                   writerThread: WriterThread,
+                                   writer: Writer,
                                    startTime: Long,
                                    env: SparkEnv,
-                                   worker: Socket,
+                                   worker: PythonWorker,
                                    pid: Option[Int],
                                    releasedOrClosed: AtomicBoolean,
                                    context: TaskContext): Iterator[ColumnarBatch] = {
 
-    new ShimReaderIterator(stream, writerThread, startTime, env, worker, pid, releasedOrClosed,
+    new ShimReaderIterator(stream, writer, startTime, env, worker, pid, releasedOrClosed,
       context) {
 
       private[this] var arrowReader: StreamedTableReader = _
@@ -139,8 +135,8 @@ trait GpuPythonArrowOutput { _: GpuPythonRunnerBase[_] =>
       private var batchLoaded = true
 
       protected override def read(): ColumnarBatch = {
-        if (writerThread.exception.isDefined) {
-          throw writerThread.exception.get
+        if (writer.exception.isDefined) {
+          throw writer.exception.get
         }
         try {
           // Because of batching and other things we have to be sure that we release the semaphore
@@ -222,13 +218,13 @@ abstract class GpuArrowPythonRunnerBase(
     "Pandas execution requires more than 4 bytes. Please set higher buffer. " +
       s"Please change '${SQLConf.PANDAS_UDF_BUFFER_SIZE.key}'.")
 
-  protected override def newWriterThread(
-                                          env: SparkEnv,
-                                          worker: Socket,
-                                          inputIterator: Iterator[ColumnarBatch],
-                                          partitionIndex: Int,
-                                          context: TaskContext): WriterThread = {
-    new WriterThread(env, worker, inputIterator, partitionIndex, context) {
+  protected override def newWriter(
+                                    env: SparkEnv,
+                                    worker: PythonWorker,
+                                    inputIterator: Iterator[ColumnarBatch],
+                                    partitionIndex: Int,
+                                    context: TaskContext): Writer = {
+    new Writer(env, worker, inputIterator, partitionIndex, context) {
 
       protected override def writeCommand(dataOut: DataOutputStream): Unit = {
 
@@ -242,7 +238,7 @@ abstract class GpuArrowPythonRunnerBase(
         PythonUDFRunner.writeUDFs(dataOut, funcs, argOffsets)
       }
 
-      protected override def writeIteratorToStream(dataOut: DataOutputStream): Unit = {
+      override def writeNextInputToStream(dataOut: DataOutputStream): Boolean = {
         val writer = {
           val builder = ArrowIPCWriterOptions.builder()
           builder.withMaxChunkSize(batchSize)
@@ -261,14 +257,17 @@ abstract class GpuArrowPythonRunnerBase(
           Table.writeArrowIPCChunked(builder.build(), new BufferToStreamWriter(dataOut))
         }
 
+        var wrote = false
         Utils.tryWithSafeFinally {
           while(inputIterator.hasNext) {
+            wrote = false
             val table = withResource(inputIterator.next()) { nextBatch =>
               GpuColumnVector.from(nextBatch)
             }
             withResource(new NvtxRange("write python batch", NvtxColor.DARK_GREEN)) { _ =>
               // The callback will handle closing table and releasing the semaphore
               writer.write(table)
+              wrote = true
             }
           }
           // The iterator can grab the semaphore even on an empty batch
@@ -278,6 +277,7 @@ abstract class GpuArrowPythonRunnerBase(
           dataOut.flush()
           if (onDataWriteFinished != null) onDataWriteFinished()
         }
+        wrote
       }
     }
   }
