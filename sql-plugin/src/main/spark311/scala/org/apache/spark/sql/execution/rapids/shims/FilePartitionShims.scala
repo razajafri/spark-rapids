@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /*** spark-rapids-shim-json-lines
 {"spark": "311"}
 {"spark": "312"}
@@ -35,14 +34,14 @@
 {"spark": "333"}
 {"spark": "340"}
 {"spark": "341"}
-{"spark": "341db"}
 spark-rapids-shim-json-lines ***/
+
 package org.apache.spark.sql.execution.rapids.shims
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.{CompressionCodecFactory, SplittableCompressionCodec}
-import org.apache.spark.paths.SparkPath
+
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.PartitionedFileUtil
 import org.apache.spark.sql.execution.datasources._
@@ -52,7 +51,7 @@ object FilePartitionShims {
   def getPartitions(selectedPartitions: Array[PartitionDirectory]): Array[PartitionedFile] = {
     selectedPartitions.flatMap { p =>
       p.files.map { f =>
-        PartitionedFileUtil.getPartitionedFile(f, p.values, Some(SparkPath.fromPath(f.getPath)))
+        PartitionedFileUtil.getPartitionedFile(f, f.getPath, p.values)
       }
     }
   }
@@ -77,6 +76,7 @@ object FilePartitionShims {
         PartitionedFileUtil.splitFiles(
           sparkSession,
           f,
+          f.getPath,
           isSplitable = canBeSplit(f.getPath, hadoopConf),
           maxSplitBytes,
           partition.values
@@ -99,6 +99,7 @@ object FilePartitionShims {
         PartitionedFileUtil.splitFiles(
           sparkSession = relation.sparkSession,
           file = file,
+          filePath = file.getPath,
           isSplitable = isSplitable,
           maxSplitBytes = maxSplitBytes,
           partitionValues = partition.values

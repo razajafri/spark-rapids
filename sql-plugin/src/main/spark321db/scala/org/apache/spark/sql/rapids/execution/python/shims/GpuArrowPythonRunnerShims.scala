@@ -18,7 +18,6 @@
 {"spark": "321db"}
 {"spark": "330db"}
 {"spark": "332db"}
-{"spark": "341db"}
 spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.rapids.execution.python.shims
 
@@ -27,6 +26,7 @@ import org.apache.spark.sql.rapids.execution.python._
 import org.apache.spark.sql.rapids.shims.ArrowUtilsShim
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.vectorized.ColumnarBatch
+
 case class GpuArrowPythonRunnerShims(
   conf: org.apache.spark.sql.internal.SQLConf,
   chainedFunc: Seq[ChainedPythonFunctions],

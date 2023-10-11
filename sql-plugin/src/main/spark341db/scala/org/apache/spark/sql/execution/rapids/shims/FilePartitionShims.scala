@@ -14,25 +14,26 @@
  * limitations under the License.
  */
 
-/*** spark-rapids-shim-json-lines
-{"spark": "350"}
-spark-rapids-shim-json-lines ***/
 
+/*** spark-rapids-shim-json-lines
+{"spark": "341db"}
+spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.execution.rapids.shims
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.{CompressionCodecFactory, SplittableCompressionCodec}
-
+import org.apache.spark.paths.SparkPath
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.PartitionedFileUtil
 import org.apache.spark.sql.execution.datasources._
 
 object FilePartitionShims {
+
   def getPartitions(selectedPartitions: Array[PartitionDirectory]): Array[PartitionedFile] = {
     selectedPartitions.flatMap { p =>
       p.files.map { f =>
-        PartitionedFileUtil.getPartitionedFile(f, p.values)
+        PartitionedFileUtil.getPartitionedFile(f, p.values, Some(SparkPath.fromPath(f.getPath)))
       }
     }
   }
@@ -65,7 +66,8 @@ object FilePartitionShims {
     }
   }
 
-  def splitFiles(selectedPartitions: Array[PartitionDirectory],
+  def splitFiles(
+      selectedPartitions: Array[PartitionDirectory],
       relation: HadoopFsRelation,
       maxSplitBytes: Long): Array[PartitionedFile] = {
 
@@ -85,4 +87,5 @@ object FilePartitionShims {
       }
     }.sortBy(_.length)(implicitly[Ordering[Long]].reverse)
   }
+
 }

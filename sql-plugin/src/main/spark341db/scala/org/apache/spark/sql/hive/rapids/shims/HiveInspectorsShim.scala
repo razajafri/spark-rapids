@@ -14,28 +14,10 @@
  * limitations under the License.
  */
 
-/*** spark-rapids-shim-json-lines
-{"spark": "311"}
-{"spark": "312"}
-{"spark": "313"}
-{"spark": "320"}
-{"spark": "321"}
-{"spark": "321cdh"}
-{"spark": "321db"}
-{"spark": "322"}
-{"spark": "323"}
-{"spark": "324"}
-{"spark": "330"}
-{"spark": "330cdh"}
-{"spark": "330db"}
-{"spark": "331"}
-{"spark": "332"}
-{"spark": "332db"}
-{"spark": "333"}
-{"spark": "340"}
-{"spark": "341"}
-spark-rapids-shim-json-lines ***/
 
+/*** spark-rapids-shim-json-lines
+{"spark": "341db"}
+spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.hive.rapids.shims
 
 import org.apache.spark.sql.hive.HiveInspectors
@@ -48,6 +30,7 @@ trait HiveInspectorsShim extends HiveInspectors {
       wrappers: Array[(Any) => Any],
       cache: Array[AnyRef],
       dataTypes: Array[DataType]): Array[AnyRef] = {
-    wrap(row, wrappers, cache, dataTypes)
+    // TODO: get rid of the 4th parameter in wrapRow
+    wrap(row, wrappers, cache)
   }
 }
