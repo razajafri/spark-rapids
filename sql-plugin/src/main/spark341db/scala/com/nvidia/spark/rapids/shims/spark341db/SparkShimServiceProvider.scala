@@ -24,7 +24,7 @@ import com.nvidia.spark.rapids.{DatabricksShimVersion, ShimVersion}
 import org.apache.spark.SparkEnv
 
 object SparkShimServiceProvider {
-  val VERSION = DatabricksShimVersion(3, 3, 2)
+  val VERSION = DatabricksShimVersion(3, 4, 1)
 }
 
 class SparkShimServiceProvider extends com.nvidia.spark.rapids.SparkShimServiceProvider {
@@ -32,6 +32,6 @@ class SparkShimServiceProvider extends com.nvidia.spark.rapids.SparkShimServiceP
   override def getShimVersion: ShimVersion = SparkShimServiceProvider.VERSION
 
   def matchesVersion(version: String): Boolean = {
-    SparkEnv.get.conf.get("spark.databricks.clusterUsageTags.sparkVersion", "").startsWith("12.2.")
+    SparkEnv.get.conf.get("spark.databricks.clusterUsageTags.sparkVersion", "").startsWith("13.3.")
   }
 }
