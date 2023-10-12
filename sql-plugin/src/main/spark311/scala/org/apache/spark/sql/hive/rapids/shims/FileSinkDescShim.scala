@@ -40,13 +40,11 @@ spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.hive.rapids.shims
 
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hive.ql.plan.TableDesc
-
-import org.apache.spark.sql.hive.HiveShim.{ShimFileSinkDesc => FileSinkDesc}
+import org.apache.hadoop.hive.ql.plan.{FileSinkDesc, TableDesc}
 
 object FileSinkDescShim {
   def getPartitionColumns(tmpLocation: Path, tableDesc: TableDesc): String = {
-    val fileSinkConf = new FileSinkDesc(tmpLocation.toString, tableDesc, false)
+    val fileSinkConf = new FileSinkDesc(tmpLocation, tableDesc, false)
     fileSinkConf.getTableInfo.getProperties.getProperty("partition_columns")
   }
 }

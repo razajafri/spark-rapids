@@ -29,7 +29,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, DynamicPruningExpression, Expression, Literal, SortOrder}
 import org.apache.spark.sql.catalyst.plans.QueryPlan
 import org.apache.spark.sql.catalyst.plans.physical.{KeyGroupedPartitioning, SinglePartition}
-import org.apache.spark.sql.catalyst.util.{truncatedString, InternalRowSet}
+import org.apache.spark.sql.catalyst.util.{truncatedString, InternalRowComparableWrapper}
 import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.connector.read._
 import org.apache.spark.sql.execution.datasources.rapids.DataSourceStrategyUtils
@@ -86,17 +86,23 @@ case class GpuBatchScanExec(
               "filtering")
           }
 
-          val newRows = new InternalRowSet(p.expressions.map(_.dataType))
-          newRows ++= newPartitions.map(_.asInstanceOf[HasPartitionKey].partitionKey())
-          val oldRows = p.partitionValues
+          val newPartitionValues = newPartitions.map(partition =>
+              InternalRowComparableWrapper(partition.asInstanceOf[HasPartitionKey], p.expressions))
+            .toSet
 
-          if (oldRows.size != newRows.size) {
+          val oldPartitionValues = p.partitionValues.map(partition =>
+            InternalRowComparableWrapper(partition, p.expressions)).toSet
+          // We require the new number of partition values to be equal or less than the old number +
+          // of partition values here. In the case of less than, empty partitions will be added for
+          // those missing values that are not present in the new input partitions. +
+          if (oldPartitionValues.size < newPartitionValues.size) {
             throw new SparkException("Data source must have preserved the original partitioning " +
               "during runtime filtering: the number of unique partition values obtained " +
-              s"through HasPartitionKey changed: before ${oldRows.size}, after ${newRows.size}")
+              s"through HasPartitionKey changed: before ${oldPartitionValues.size}, after " +
+              s"${newPartitionValues.size}")
           }
 
-          if (!oldRows.forall(newRows.contains)) {
+          if (!newPartitionValues.forall(oldPartitionValues.contains)) {
             throw new SparkException("Data source must have preserved the original partitioning " +
               "during runtime filtering: the number of unique partition values obtained " +
               s"through HasPartitionKey remain the same but do not exactly match")

@@ -24,9 +24,10 @@ package com.nvidia.spark.rapids.delta
 import scala.collection.mutable.ArrayBuffer
 
 import ai.rapids.cudf.{ColumnView, DType}
+import com.databricks.sql.transaction.tahoe.stats.DeltaStatistics._
 import com.nvidia.spark.rapids.{GpuColumnVector, GpuScalar}
 import com.nvidia.spark.rapids.Arm.withResource
-import com.nvidia.spark.rapids.delta.shims.{ShimDeltaColumnMapping, ShimDeltaUDF, ShimUsesMetadataFields}
+import com.nvidia.spark.rapids.delta.shims.{ShimDeltaColumnMapping, ShimDeltaUDF}
 
 import org.apache.spark.sql.{Column, SparkSession}
 import org.apache.spark.sql.catalyst.InternalRow
@@ -36,7 +37,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
 /** GPU version of Delta Lake's StatisticsCollection. */
-trait GpuStatisticsCollection extends ShimUsesMetadataFields {
+trait GpuStatisticsCollection {
   protected def spark: SparkSession
   def tableDataSchema: StructType
   def dataSchema: StructType
@@ -82,6 +83,7 @@ trait GpuStatisticsCollection extends ShimUsesMetadataFields {
       None
     }
 
+    // TODO: Make sure the stats cols match the ones from DataSkippingReader.statsCollector
     val statCols = Seq(
       count(new Column("*")) as NUM_RECORDS,
       collectStats(MIN, statCollectionSchema) {

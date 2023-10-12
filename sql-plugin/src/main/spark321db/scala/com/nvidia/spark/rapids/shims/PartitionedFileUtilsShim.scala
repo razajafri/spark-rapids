@@ -22,6 +22,7 @@
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims
 
+import org.apache.spark.paths.SparkPath
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.PartitionedFile
 
@@ -32,7 +33,9 @@ object PartitionedFileUtilsShim {
       partitionValues: InternalRow,
       filePath: String,
       start: Long,
-      length: Long): PartitionedFile = PartitionedFile(partitionValues, filePath, start, length)
+      length: Long): PartitionedFile = {
+    PartitionedFile(partitionValues, SparkPath.fromPathString(filePath), start, length)
+  }
 
   def withNewLocations(pf: PartitionedFile, locations: Seq[String]): PartitionedFile = {
     pf.copy(locations = locations)
