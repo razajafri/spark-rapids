@@ -82,6 +82,7 @@ trait GpuStatisticsCollection extends ShimUsesMetadataFields {
       None
     }
 
+    // TODO: Make sure the stats cols match the ones from DataSkippingReader.statsCollector
     val statCols = Seq(
       count(new Column("*")) as NUM_RECORDS,
       collectStats(MIN, statCollectionSchema) {
