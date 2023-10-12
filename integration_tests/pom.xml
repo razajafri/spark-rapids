@@ -113,6 +113,23 @@
             </dependencies>
         </profile>
         <profile>
+            <id>release341db</id>
+            <activation>
+                <property>
+                    <name>buildver</name>
+                    <value>341db</value>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-common-utils_${scala.binary.version}</artifactId>
+                    <version>${spark.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <!--
                  Note that we are using the Spark version for all of the Databricks dependencies as well.
                  The jenkins/databricks/build.sh script handles installing the jars as maven artifacts.
