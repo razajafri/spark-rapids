@@ -179,7 +179,7 @@ object DeltaShufflePartitionsUtil {
             c.child
           case _ => p
         }
-      case ShuffleExchangeExec(_, child, shuffleOrigin)
+      case ShuffleExchangeExec(_, child, shuffleOrigin, None)
         if !shuffleOrigin.equals(ENSURE_REQUIREMENTS) =>
         child
       case CoalesceExec(_, child) =>
