@@ -24,10 +24,9 @@ package com.nvidia.spark.rapids.delta
 import scala.collection.mutable.ArrayBuffer
 
 import ai.rapids.cudf.{ColumnView, DType}
-import com.databricks.sql.transaction.tahoe.stats.DeltaStatistics._
 import com.nvidia.spark.rapids.{GpuColumnVector, GpuScalar}
 import com.nvidia.spark.rapids.Arm.withResource
-import com.nvidia.spark.rapids.delta.shims.{ShimDeltaColumnMapping, ShimDeltaUDF}
+import com.nvidia.spark.rapids.delta.shims.{ShimDeltaColumnMapping, ShimDeltaUDF, ShimUsesMetadataFields}
 
 import org.apache.spark.sql.{Column, SparkSession}
 import org.apache.spark.sql.catalyst.InternalRow
@@ -37,7 +36,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
 /** GPU version of Delta Lake's StatisticsCollection. */
-trait GpuStatisticsCollection {
+trait GpuStatisticsCollection extends ShimUsesMetadataFields {
   protected def spark: SparkSession
   def tableDataSchema: StructType
   def dataSchema: StructType
