@@ -20,17 +20,15 @@ spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims
 
 import com.nvidia.spark.rapids._
-import org.apache.parquet.schema.MessageType
-
 import com.nvidia.spark.rapids.GpuOverrides.pluginSupportedOrderableSig
+import org.apache.parquet.schema.MessageType
 
 import org.apache.spark.rapids.shims.GpuShuffleExchangeExec
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.plans.physical.SinglePartition
 import org.apache.spark.sql.catalyst.trees.TreePattern._
-import org.apache.spark.sql.execution.{ColumnarToRowTransition, SparkPlan}
+import org.apache.spark.sql.execution.{ColumnarToRowTransition, SparkPlan, TakeOrderedAndProjectExec}
 import org.apache.spark.sql.execution.adaptive.ShuffleQueryStageExec
-import org.apache.spark.sql.execution.TakeOrderedAndProjectExec
 import org.apache.spark.sql.execution.command.{CreateDataSourceTableAsSelectCommand, DataWritingCommand, RunnableCommand}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFilters

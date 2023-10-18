@@ -35,8 +35,6 @@ import org.apache.spark.sql.rapids.execution.python._
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.util.Utils
-import java.io.{DataInputStream, DataOutputStream}
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * A trait that can be mixed-in with `GpuPythonRunnerBase`. It implements the logic from
