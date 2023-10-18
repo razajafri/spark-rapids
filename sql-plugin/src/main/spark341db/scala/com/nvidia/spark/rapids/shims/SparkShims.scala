@@ -22,15 +22,19 @@ package com.nvidia.spark.rapids.shims
 import com.nvidia.spark.rapids._
 import org.apache.parquet.schema.MessageType
 
+import com.nvidia.spark.rapids.GpuOverrides.pluginSupportedOrderableSig
+
+import org.apache.spark.rapids.shims.GpuShuffleExchangeExec
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.plans.physical.SinglePartition
 import org.apache.spark.sql.catalyst.trees.TreePattern._
 import org.apache.spark.sql.execution.{ColumnarToRowTransition, SparkPlan}
 import org.apache.spark.sql.execution.adaptive.ShuffleQueryStageExec
+import org.apache.spark.sql.execution.TakeOrderedAndProjectExec
 import org.apache.spark.sql.execution.command.{CreateDataSourceTableAsSelectCommand, DataWritingCommand, RunnableCommand}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFilters
-import org.apache.spark.sql.execution.exchange.{EXECUTOR_BROADCAST, ShuffleExchangeExec, ShuffleExchangeLike}
+import org.apache.spark.sql.execution.exchange.{ENSURE_REQUIREMENTS, EXECUTOR_BROADCAST, ShuffleExchangeExec, ShuffleExchangeLike}
 import org.apache.spark.sql.rapids.GpuElementAtMeta
 import org.apache.spark.sql.rapids.GpuV1WriteUtils.GpuEmpty2Null
 import org.apache.spark.sql.rapids.execution.{GpuBroadcastHashJoinExec, GpuBroadcastNestedLoopJoinExec}
@@ -88,7 +92,54 @@ object SparkShimImpl extends Spark321PlusDBShims {
       // The parent node of `WriteFilesExec` will check the types, here just let type check pass
       ExecChecks(TypeSig.all, TypeSig.all),
       (write, conf, p, r) => new GpuWriteFilesMeta(write, conf, p, r)
-    )
+    ),
+    GpuOverrides.exec[TakeOrderedAndProjectExec](
+      "Take the first limit elements after offset as defined by the sortOrder, and do " +
+        "projection if needed",
+      // The SortOrder TypeSig will govern what types can actually be used as sorting key data
+      // type. The types below are allowed as inputs and outputs.
+      ExecChecks((pluginSupportedOrderableSig +
+        TypeSig.ARRAY + TypeSig.STRUCT + TypeSig.MAP).nested(), TypeSig.all),
+      (takeExec, conf, p, r) =>
+        new SparkPlanMeta[TakeOrderedAndProjectExec](takeExec, conf, p, r) {
+          val sortOrder: Seq[BaseExprMeta[SortOrder]] =
+            takeExec.sortOrder.map(GpuOverrides.wrapExpr(_, conf, Some(this)))
+          val projectList: Seq[BaseExprMeta[NamedExpression]] =
+            takeExec.projectList.map(GpuOverrides.wrapExpr(_, conf, Some(this)))
+          override val childExprs: Seq[BaseExprMeta[_]] = sortOrder ++ projectList
+
+          override def convertToGpu(): GpuExec = {
+            // To avoid metrics confusion we split a single stage up into multiple parts but only
+            // if there are multiple partitions to make it worth doing.
+            val so = sortOrder.map(_.convertToGpu().asInstanceOf[SortOrder])
+            if (takeExec.child.outputPartitioning.numPartitions == 1) {
+              GpuTopN(takeExec.limit, so,
+                projectList.map(_.convertToGpu().asInstanceOf[NamedExpression]),
+                childPlans.head.convertIfNeeded(), takeExec.offset)(takeExec.sortOrder)
+            } else {
+              // We are applying the offset only after the batch has been sorted into a single
+              // partition. To further clarify we are doing the following
+              // GpuTopN(0, end) -> Shuffle(single partition) -> GpuTopN(offset, end)
+              // So the leaf GpuTopN (left most) doesn't take offset into account so all the
+              // results can perculate above, where we shuffle into a single partition then
+              // we drop the offset number of rows before projecting.
+              GpuTopN(
+                takeExec.limit,
+                so,
+                projectList.map(_.convertToGpu().asInstanceOf[NamedExpression]),
+                GpuShuffleExchangeExec(
+                  GpuSinglePartitioning,
+                  GpuTopN(
+                    takeExec.limit,
+                    so,
+                    takeExec.child.output,
+                    childPlans.head.convertIfNeeded())(takeExec.sortOrder),
+                  ENSURE_REQUIREMENTS
+                )(SinglePartition),
+                takeExec.offset)(takeExec.sortOrder)
+            }
+          }
+        })
   ).map(r => (r.getClassFor.asSubclass(classOf[SparkPlan]), r)).toMap
 
 
