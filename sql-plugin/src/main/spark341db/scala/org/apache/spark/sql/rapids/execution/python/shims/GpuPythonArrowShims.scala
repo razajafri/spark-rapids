@@ -200,6 +200,21 @@ abstract class GpuArrowPythonRunnerBase(
       }
 
       override def writeNextInputToStream(dataOut: DataOutputStream): Boolean = {
+        if (inputIterator.nonEmpty) {
+          writeNonEmptyIteratorOnGpu(dataOut)
+        } else { // Partition is empty.
+          // In this case CPU will still send the schema to Python workers by calling
+          // the "start" API of the Java Arrow writer, but GPU will send out nothing,
+          // leading to the IPC error. And it is not easy to do as what Spark does on
+          // GPU, because the C++ Arrow writer used by GPU will only send out the schema
+          // iff there is some data. Besides, it does not expose a "start" API to do this.
+          // So here we leverage the Java Arrow writer to do similar things as Spark.
+          // It is OK because sending out schema has nothing to do with GPU.
+          writeEmptyIteratorOnCpu(dataOut)
+        }
+      }
+
+      private def writeNonEmptyIteratorOnGpu(dataOut: DataOutputStream): Unit = {
         val writer = {
           val builder = ArrowIPCWriterOptions.builder()
           builder.withMaxChunkSize(batchSize)
@@ -239,6 +254,27 @@ abstract class GpuArrowPythonRunnerBase(
           if (onDataWriteFinished != null) onDataWriteFinished()
         }
         wrote
+      }
+      
+      private def writeEmptyIteratorOnCpu(dataOut: DataOutputStream): Unit = {
+        // most code is copied from Spark
+        val arrowSchema = ArrowUtilsShim.toArrowSchema(pythonInSchema, timeZoneId)
+        val allocator = ArrowUtils.rootAllocator.newChildAllocator(
+          s"stdout writer for empty partition", 0, Long.MaxValue)
+        val root = VectorSchemaRoot.create(arrowSchema, allocator)
+
+        Utils.tryWithSafeFinally {
+          val writer = new ArrowStreamWriter(root, null, dataOut)
+          writer.start()
+          // No data to write
+          writer.end()
+          // The iterator can grab the semaphore even on an empty batch
+          GpuSemaphore.releaseIfNecessary(TaskContext.get())
+        } {
+          root.close()
+          allocator.close()
+          if (onDataWriteFinished != null) onDataWriteFinished()
+        }
       }
     }
   }
