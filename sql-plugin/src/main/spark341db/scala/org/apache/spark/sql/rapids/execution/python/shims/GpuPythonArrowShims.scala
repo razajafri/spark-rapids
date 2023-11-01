@@ -25,14 +25,11 @@ import ai.rapids.cudf._
 import com.nvidia.spark.rapids._
 import com.nvidia.spark.rapids.Arm.withResource
 import com.nvidia.spark.rapids.ScalableTaskCompletion.onTaskCompletion
-import org.apache.arrow.vector.VectorSchemaRoot
-import org.apache.arrow.vector.ipc.ArrowStreamWriter
 
 import org.apache.spark.{SparkEnv, TaskContext}
 import org.apache.spark.api.python._
 import org.apache.spark.sql.rapids.execution.python._
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.util.ArrowUtils
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
 /**
@@ -182,4 +179,17 @@ class GpuArrowPythonRunner(
       }
     }
   }
+}
+
+
+object GpuArrowPythonRunner {
+  def flattenNames(d: DataType, nullable: Boolean = true): Seq[(String, Boolean)] =
+    d match {
+      case s: StructType =>
+        s.flatMap(sf => Seq((sf.name, sf.nullable)) ++ flattenNames(sf.dataType, sf.nullable))
+      case m: MapType =>
+        flattenNames(m.keyType, nullable) ++ flattenNames(m.valueType, nullable)
+      case a: ArrayType => flattenNames(a.elementType, nullable)
+      case _ => Nil
+    }
 }
