@@ -111,15 +111,21 @@ case class GpuBroadcastHashJoinExec(
     executorBroadcast
   }
 
-  def shuffleExchange: GpuShuffleExchangeExec = buildPlan match {
-    case bqse: ShuffleQueryStageExec if bqse.plan.isInstanceOf[GpuShuffleExchangeExec] =>
-      bqse.plan.asInstanceOf[GpuShuffleExchangeExec]
-    case bqse: ShuffleQueryStageExec if bqse.plan.isInstanceOf[ReusedExchangeExec] =>
-      bqse.plan.asInstanceOf[ReusedExchangeExec].child.asInstanceOf[GpuShuffleExchangeExec]
-    case gpu: GpuShuffleExchangeExec => gpu
-    case reused: ReusedExchangeExec => reused.child.asInstanceOf[GpuShuffleExchangeExec]
+  def shuffleExchange: GpuShuffleExchangeExec = {
+    def from(p: ShuffleQueryStageExec): GpuShuffleExchangeExec = p.plan match {
+      case g: GpuShuffleExchangeExec => g
+      case ReusedExchangeExec(_, g: GpuShuffleExchangeExec) => g
+      case _ => throw new IllegalStateException(s"cannot locate GPU shuffle in $p")
+    }
+    buildPlan match {
+      case gpu: GpuShuffleExchangeExec => gpu
+      case sqse: ShuffleQueryStageExec => from(sqse)
+      case reused: ReusedExchangeExec => reused.child.asInstanceOf[GpuShuffleExchangeExec]
+      case GpuShuffleCoalesceExec(GpuCustomShuffleReaderExec(sqse: ShuffleQueryStageExec, _), _) =>
+        from(sqse)
+      case GpuCustomShuffleReaderExec(sqse: ShuffleQueryStageExec, _) => from(sqse)
+    }
   }
-
 
   private def getExecutorBuiltBatchAndStreamIter(
       buildRelation: RDD[ColumnarBatch],
