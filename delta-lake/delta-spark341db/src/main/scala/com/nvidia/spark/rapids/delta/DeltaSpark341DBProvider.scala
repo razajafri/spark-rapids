@@ -16,6 +16,7 @@
 
 package com.nvidia.spark.rapids.delta
 
+import com.databricks.sql.transaction.tahoe.rapids.GpuDeltaCatalog
 import com.nvidia.spark.rapids.{AtomicCreateTableAsSelectExecMeta, AtomicReplaceTableAsSelectExecMeta, GpuExec}
 
 import org.apache.spark.sql.execution.datasources.v2.{AtomicCreateTableAsSelectExec, AtomicReplaceTableAsSelectExec}
@@ -31,7 +32,7 @@ object DeltaSpark341DBProvider extends DatabricksDeltaProviderBase {
       new GpuDeltaCatalog(cpuExec.catalog, meta.conf),
       cpuExec.ident,
       cpuExec.partitioning,
-      cpuExec.plan,
+      cpuExec.query,
       meta.childPlans.head.convertIfNeeded(),
       cpuExec.tableSpec,
       cpuExec.writeOptions,
@@ -46,7 +47,7 @@ object DeltaSpark341DBProvider extends DatabricksDeltaProviderBase {
       new GpuDeltaCatalog(cpuExec.catalog, meta.conf),
       cpuExec.ident,
       cpuExec.partitioning,
-      cpuExec.plan,
+      cpuExec.query,
       meta.childPlans.head.convertIfNeeded(),
       cpuExec.tableSpec,
       cpuExec.writeOptions,
