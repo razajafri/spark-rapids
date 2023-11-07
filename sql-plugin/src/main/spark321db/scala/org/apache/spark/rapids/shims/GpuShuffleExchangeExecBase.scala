@@ -23,14 +23,13 @@ package org.apache.spark.rapids.shims
 
 import com.nvidia.spark.rapids.GpuPartitioning
 
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.plans.logical.Statistics
 import org.apache.spark.sql.catalyst.plans.physical.Partitioning
-import org.apache.spark.sql.execution.{ShufflePartitionSpec, SparkPlan}
+import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.exchange.{ShuffleExchangeLike, ShuffleOrigin}
-import org.apache.spark.sql.rapids.execution.{GpuShuffleExchangeExecBaseWithMetrics, ShuffledBatchRDD}
+import org.apache.spark.sql.rapids.execution.GpuShuffleExchangeExecBaseWithMetrics
 
-case class GpuShuffleExchangeExecBase(
+abstract class GpuDatabricksShuffleExchangeExecBase(
     gpuOutputPartitioning: GpuPartitioning,
     child: SparkPlan,
     shuffleOrigin: ShuffleOrigin)(
@@ -45,15 +44,6 @@ case class GpuShuffleExchangeExecBase(
   override def numMappers: Int = shuffleDependencyColumnar.rdd.getNumPartitions
 
   override def numPartitions: Int = shuffleDependencyColumnar.partitioner.numPartitions
-
-  override def getShuffleRDD(partitionSpecs: Array[ShufflePartitionSpec]): RDD[_] = {
-    new ShuffledBatchRDD(shuffleDependencyColumnar, metrics ++ readMetrics, partitionSpecs)
-  }
-
-  // DB SPECIFIC - throw if called since we don't know how its used
-  override def withNewOutputPartitioning(outputPartitioning: Partitioning) = {
-    throw new UnsupportedOperationException
-  }
 
   override def runtimeStatistics: Statistics = {
     // note that Spark will only use the sizeInBytes statistic but making the rowCount
