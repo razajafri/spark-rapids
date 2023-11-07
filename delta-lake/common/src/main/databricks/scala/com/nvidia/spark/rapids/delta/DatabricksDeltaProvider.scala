@@ -25,7 +25,7 @@ import com.databricks.sql.managedcatalog.UnityCatalogV2Proxy
 import com.databricks.sql.transaction.tahoe.{DeltaLog, DeltaOptions, DeltaParquetFileFormat}
 import com.databricks.sql.transaction.tahoe.catalog.{DeltaCatalog, DeltaTableV2}
 import com.databricks.sql.transaction.tahoe.commands.{DeleteCommand, DeleteCommandEdge, MergeIntoCommand, MergeIntoCommandEdge, UpdateCommand, UpdateCommandEdge, WriteIntoDelta}
-import com.databricks.sql.transaction.tahoe.rapids.{GpuDeltaCatalog, GpuDeltaLog, GpuWriteIntoDelta}
+import com.databricks.sql.transaction.tahoe.rapids.{GpuDeltaLog, GpuWriteIntoDelta}
 import com.databricks.sql.transaction.tahoe.sources.{DeltaDataSource, DeltaSourceUtils}
 import com.nvidia.spark.rapids._
 import com.nvidia.spark.rapids.delta.shims.DeltaLogShim
@@ -38,7 +38,6 @@ import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.command.RunnableCommand
 import org.apache.spark.sql.execution.datasources.{FileFormat, LogicalRelation, SaveIntoDataSourceCommand}
 import org.apache.spark.sql.execution.datasources.v2.{AppendDataExecV1, AtomicCreateTableAsSelectExec, AtomicReplaceTableAsSelectExec, OverwriteByExpressionExecV1}
-import org.apache.spark.sql.execution.datasources.v2.rapids.{GpuAtomicCreateTableAsSelectExec, GpuAtomicReplaceTableAsSelectExec}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.rapids.ExternalSource
 import org.apache.spark.sql.sources.{CreatableRelationProvider, InsertableRelation}
@@ -47,7 +46,7 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 /**
  * Common implementation of the DeltaProvider interface for all Databricks versions.
  */
-object DatabricksDeltaProvider extends DeltaProviderImplBase {
+object DatabricksDeltaProviderBase extends DeltaProviderImplBase {
   override def getCreatableRelationRules: Map[Class[_ <: CreatableRelationProvider],
       CreatableRelationProviderRule[_ <: CreatableRelationProvider]] = {
     Seq(
@@ -122,8 +121,7 @@ object DatabricksDeltaProvider extends DeltaProviderImplBase {
     // while in all the other versions it's a CaseInsensitiveMap
     options match {
       case c: CaseInsensitiveStringMap => c.asCaseSensitiveMap().asScala.toMap
-      case m: Map[String, String] => m
-      case t => throw new IllegalStateException(s"Unexpected option type: ${t.getClass}")
+      case _ => options.asInstanceOf[Map[String, String]]
     }
   }
 
@@ -142,7 +140,7 @@ object DatabricksDeltaProvider extends DeltaProviderImplBase {
       meta.willNotWorkOnGpu(s"table provider '$provider' is not a Delta Lake provider")
     }
     RapidsDeltaUtils.tagForDeltaWrite(meta, cpuExec.query.schema, None,
-      getWriteOptions(cpuExec), cpuExec.session)
+      getWriteOptions(cpuExec.writeOptions), cpuExec.session)
   }
 
   override def tagForGpu(
@@ -160,7 +158,7 @@ object DatabricksDeltaProvider extends DeltaProviderImplBase {
       meta.willNotWorkOnGpu(s"table provider '$provider' is not a Delta Lake provider")
     }
     RapidsDeltaUtils.tagForDeltaWrite(meta, cpuExec.query.schema, None,
-      getWriteOptions(cpuExec), cpuExec.session)
+      getWriteOptions(cpuExec.writeOptions), cpuExec.session)
   }
 
   private case class DeltaWriteV1Config(

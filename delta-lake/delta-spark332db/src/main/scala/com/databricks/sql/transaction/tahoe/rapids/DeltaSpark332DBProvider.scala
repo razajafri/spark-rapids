@@ -17,14 +17,14 @@
 package com.databricks.sql.transaction.tahoe.rapids
 
 import com.nvidia.spark.rapids.{AtomicCreateTableAsSelectExecMeta, AtomicReplaceTableAsSelectExecMeta, GpuExec}
-import com.nvidia.spark.rapids.delta.DeltaIOProvider
+import com.nvidia.spark.rapids.delta.shims.DatabricksDeltaProviderBase
 
 import org.apache.spark.sql.delta.catalog.DeltaCatalog
 import org.apache.spark.sql.delta.rapids.DeltaRuntimeShim
 import org.apache.spark.sql.execution.datasources.v2.{AtomicCreateTableAsSelectExec, AtomicReplaceTableAsSelectExec}
 import org.apache.spark.sql.execution.datasources.v2.rapids.{GpuAtomicCreateTableAsSelectExec, GpuAtomicReplaceTableAsSelectExec}
 
-object DeltaSpark332DBProvider extends DeltaIOProvider {
+object DeltaSpark332DBProvider extends DatabricksDeltaProviderBase {
 
   override def convertToGpu(
       cpuExec: AtomicCreateTableAsSelectExec,
