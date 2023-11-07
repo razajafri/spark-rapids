@@ -14,19 +14,13 @@
  * limitations under the License.
  */
 
-package com.nvidia.spark.rapids.delta.shims
+package org.apache.spark.sql.delta.rapids.delta24x
 
-import com.databricks.sql.transaction.tahoe.DeltaLog
-import com.databricks.sql.transaction.tahoe.actions.Metadata
+import com.databricks.sql.transaction.tahoe.rapids.DeltaSpark341DBProvider
+import com.nvidia.spark.rapids.delta.DeltaProvider
 
-import org.apache.spark.sql.execution.datasources.FileFormat
+import org.apache.spark.sql.delta.rapids.DeltaRuntimeShim
 
-object DeltaLogShim {
-  def fileFormat(deltaLog: DeltaLog): FileFormat = {
-    deltaLog.fileFormat(deltaLog.unsafeVolatileSnapshot.protocol,
-      deltaLog.unsafeVolatileSnapshot.metadata)
-  }
-  def getMetadata(deltaLog: DeltaLog): Metadata = {
-    deltaLog.unsafeVolatileSnapshot.metadata
-  }
+class Spark341DBRuntimeShim extends DeltaRuntimeShim {
+  override def getDeltaProvider: DeltaProvider = DeltaSpark341DBProvider
 }

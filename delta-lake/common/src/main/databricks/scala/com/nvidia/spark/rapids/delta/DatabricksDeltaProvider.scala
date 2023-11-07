@@ -122,7 +122,8 @@ object DatabricksDeltaProvider extends DeltaProviderImplBase {
     // while in all the other versions it's a CaseInsensitiveMap
     options match {
       case c: CaseInsensitiveStringMap => c.asCaseSensitiveMap().asScala.toMap
-      case _ => options.asInstanceOf[Map[String, String]]
+      case m: Map[String, String] => m
+      case t => throw new IllegalStateException(s"Unexpected option type: ${t.getClass}")
     }
   }
 
@@ -144,16 +145,6 @@ object DatabricksDeltaProvider extends DeltaProviderImplBase {
       getWriteOptions(cpuExec), cpuExec.session)
   }
 
-  override def convertToGpu(
-      cpuExec: AtomicCreateTableAsSelectExec,
-      meta: AtomicCreateTableAsSelectExecMeta): GpuExec = {
-    GpuAtomicCreateTableAsSelectExec(
-      cpuExec,
-      new GpuDeltaCatalog(cpuExec.catalog, meta.conf),
-      meta.childPlans.head.convertIfNeeded()
-    )
-  }
-
   override def tagForGpu(
       cpuExec: AtomicReplaceTableAsSelectExec,
       meta: AtomicReplaceTableAsSelectExecMeta): Unit = {
@@ -170,16 +161,6 @@ object DatabricksDeltaProvider extends DeltaProviderImplBase {
     }
     RapidsDeltaUtils.tagForDeltaWrite(meta, cpuExec.query.schema, None,
       getWriteOptions(cpuExec), cpuExec.session)
-  }
-
-  override def convertToGpu(
-      cpuExec: AtomicReplaceTableAsSelectExec,
-      meta: AtomicReplaceTableAsSelectExecMeta): GpuExec = {
-    GpuAtomicReplaceTableAsSelectExec(
-      cpuExec,
-      new GpuDeltaCatalog(cpuExec.catalog, meta.conf),
-      meta.childPlans.head.convertIfNeeded()
-    )
   }
 
   private case class DeltaWriteV1Config(
