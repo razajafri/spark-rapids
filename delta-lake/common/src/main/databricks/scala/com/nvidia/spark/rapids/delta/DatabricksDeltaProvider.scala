@@ -46,7 +46,7 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 /**
  * Common implementation of the DeltaProvider interface for all Databricks versions.
  */
-object DatabricksDeltaProviderBase extends DeltaProviderImplBase {
+trait DatabricksDeltaProviderBase extends DeltaProviderImplBase {
   override def getCreatableRelationRules: Map[Class[_ <: CreatableRelationProvider],
       CreatableRelationProviderRule[_ <: CreatableRelationProvider]] = {
     Seq(
