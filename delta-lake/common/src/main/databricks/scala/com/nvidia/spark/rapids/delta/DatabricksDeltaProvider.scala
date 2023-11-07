@@ -340,11 +340,13 @@ class DeltaCreatableRelationProviderMeta(
   override def convertToGpu(): GpuCreatableRelationProvider = new GpuDeltaDataSource(conf)
 }
 
-/**
- * Implements the Delta Probe interface for probing the Delta Lake provider on Databricks.
- * @note This is instantiated via reflection from ShimLoader.
- */
-class DeltaProbeImpl extends DeltaProbe {
-  // Delta Lake is built-in for Databricks instances, so no probing is necessary.
-  override def getDeltaProvider: DeltaProvider = DatabricksDeltaProvider
-}
+//object DatabricksDeltaProvider extends DatabricksDeltaProviderBase
+//
+///**
+// * Implements the Delta Probe interface for probing the Delta Lake provider on Databricks.
+// * @note This is instantiated via reflection from ShimLoader.
+// */
+//class DeltaProbeImpl extends DeltaProbe {
+//  // Delta Lake is built-in for Databricks instances, so no probing is necessary.
+//  override def getDeltaProvider: DeltaProvider = DatabricksDeltaProvider
+//}
