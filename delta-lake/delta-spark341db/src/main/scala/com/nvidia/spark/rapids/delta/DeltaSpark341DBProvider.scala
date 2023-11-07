@@ -14,13 +14,10 @@
  * limitations under the License.
  */
 
-package com.databricks.sql.transaction.tahoe.rapids
+package com.nvidia.spark.rapids.delta
 
 import com.nvidia.spark.rapids.{AtomicCreateTableAsSelectExecMeta, AtomicReplaceTableAsSelectExecMeta, GpuExec}
-import com.nvidia.spark.rapids.delta.shims.DatabricksDeltaProviderBase
 
-import org.apache.spark.sql.delta.catalog.DeltaCatalog
-import org.apache.spark.sql.delta.rapids.DeltaRuntimeShim
 import org.apache.spark.sql.execution.datasources.v2.{AtomicCreateTableAsSelectExec, AtomicReplaceTableAsSelectExec}
 import org.apache.spark.sql.execution.datasources.v2.rapids.{GpuAtomicCreateTableAsSelectExec, GpuAtomicReplaceTableAsSelectExec}
 
@@ -29,9 +26,9 @@ object DeltaSpark341DBProvider extends DatabricksDeltaProviderBase {
   override def convertToGpu(
       cpuExec: AtomicCreateTableAsSelectExec,
       meta: AtomicCreateTableAsSelectExecMeta): GpuExec = {
-    val cpuCatalog = cpuExec.catalog.asInstanceOf[DeltaCatalog]
     GpuAtomicCreateTableAsSelectExec(
-      DeltaRuntimeShim.getGpuDeltaCatalog(cpuCatalog, meta.conf),
+      cpuExec.output,
+      new GpuDeltaCatalog(cpuExec.catalog, meta.conf),
       cpuExec.ident,
       cpuExec.partitioning,
       cpuExec.plan,
@@ -44,9 +41,9 @@ object DeltaSpark341DBProvider extends DatabricksDeltaProviderBase {
   override def convertToGpu(
       cpuExec: AtomicReplaceTableAsSelectExec,
       meta: AtomicReplaceTableAsSelectExecMeta): GpuExec = {
-    val cpuCatalog = cpuExec.catalog.asInstanceOf[DeltaCatalog]
     GpuAtomicReplaceTableAsSelectExec(
-      DeltaRuntimeShim.getGpuDeltaCatalog(cpuCatalog, meta.conf),
+      cpuExec.output,
+      new GpuDeltaCatalog(cpuExec.catalog, meta.conf),
       cpuExec.ident,
       cpuExec.partitioning,
       cpuExec.plan,

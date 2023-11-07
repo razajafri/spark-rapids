@@ -15,13 +15,11 @@
  */
 package com.nvidia.spark.rapids.delta
 
-import com.databricks.sql.transaction.tahoe.rapids.Delta341DBProvider
-
 /**
  * Implements the Delta Probe interface for probing the Delta Lake provider on Databricks.
  * @note This is instantiated via reflection from ShimLoader.
  */
 class DeltaProbeImpl extends DeltaProbe {
   // Delta Lake is built-in for Databricks instances, so no probing is necessary.
-  override def getDeltaProvider: DeltaProvider = Delta341DBProvider
+  override def getDeltaProvider: DeltaProvider = DeltaSpark341DBProvider
 }
