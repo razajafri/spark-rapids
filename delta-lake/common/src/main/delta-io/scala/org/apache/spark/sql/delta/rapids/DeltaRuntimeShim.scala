@@ -43,37 +43,25 @@ trait DeltaRuntimeShim {
 
 object DeltaRuntimeShim {
   private def getShimClassName: String = {
-    if (!VersionUtils.isDataBricks) {
-      if (VersionUtils.cmpSparkVersion(3, 2, 0) < 0) {
-        throw new IllegalStateException("Delta Lake is not supported on Spark < 3.2.x")
-      } else if (VersionUtils.cmpSparkVersion(3, 3, 0) < 0) {
-        "org.apache.spark.sql.delta.rapids.delta20x.Delta20xRuntimeShim"
-      } else if (VersionUtils.cmpSparkVersion(3, 4, 0) < 0) {
-        // Could not find a Delta Lake API to determine what version is being run,
-        // so this resorts to "fingerprinting" via reflection probing.
-        Try {
-          DeltaUDF.getClass.getMethod("stringStringUdf", classOf[String => String])
-        }.map(_ => "org.apache.spark.sql.delta.rapids.delta21x.Delta21xRuntimeShim")
-          .orElse {
-            Try {
-              classOf[DeltaLog].getMethod("assertRemovable")
-            }.map(_ => "org.apache.spark.sql.delta.rapids.delta22x.Delta22xRuntimeShim")
-          }.getOrElse("org.apache.spark.sql.delta.rapids.delta23x.Delta23xRuntimeShim")
-      } else if (VersionUtils.cmpSparkVersion(3, 5, 0) < 0) {
-        "org.apache.spark.sql.delta.rapids.delta24x.Delta24xRuntimeShim"
-      } else {
-        throw new IllegalStateException("Delta Lake is not supported on Spark > 3.5.x")
-      }
+    if (VersionUtils.cmpSparkVersion(3, 2, 0) < 0) {
+      throw new IllegalStateException("Delta Lake is not supported on Spark < 3.2.x")
+    } else if (VersionUtils.cmpSparkVersion(3, 3, 0) < 0) {
+      "org.apache.spark.sql.delta.rapids.delta20x.Delta20xRuntimeShim"
+    } else if (VersionUtils.cmpSparkVersion(3, 4, 0) < 0) {
+      // Could not find a Delta Lake API to determine what version is being run,
+      // so this resorts to "fingerprinting" via reflection probing.
+      Try {
+        DeltaUDF.getClass.getMethod("stringStringUdf", classOf[String => String])
+      }.map(_ => "org.apache.spark.sql.delta.rapids.delta21x.Delta21xRuntimeShim")
+        .orElse {
+          Try {
+            classOf[DeltaLog].getMethod("assertRemovable")
+          }.map(_ => "org.apache.spark.sql.delta.rapids.delta22x.Delta22xRuntimeShim")
+        }.getOrElse("org.apache.spark.sql.delta.rapids.delta23x.Delta23xRuntimeShim")
+    } else if (VersionUtils.cmpSparkVersion(3, 5, 0) < 0) {
+      "org.apache.spark.sql.delta.rapids.delta24x.Delta24xRuntimeShim"
     } else {
-      if (VersionUtils.cmpSparkVersion(3, 3, 2) == 0) {
-        "com.databricks.sql.transaction.tahoe.rapids.DeltaSpark332DBProvider"
-      }
-      else if (VersionUtils.cmpSparkVersion(3, 4, 1) == 0) {
-        "com.databricks.sql.transaction.tahoe.rapids.DeltaSpark341DBProvider"
-      } else {
-        throw new IllegalStateException("Delta Lake is not supported for this version of " +
-          "Databricks")
-      }
+      throw new IllegalStateException("Delta Lake is not supported on Spark > 3.5.x")
     }
   }
 
