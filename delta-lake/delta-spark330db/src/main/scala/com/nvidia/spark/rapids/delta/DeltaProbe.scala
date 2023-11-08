@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, NVIDIA CORPORATION.
+ * Copyright (c) 2022-2023, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.nvidia.spark.rapids.delta
 
-package org.apache.spark.sql.delta.rapids.spark341db
-
-import com.databricks.sql.transaction.tahoe.rapids.DeltaSpark341DBProvider
-import com.nvidia.spark.rapids.delta.DeltaProvider
-
-import org.apache.spark.sql.delta.rapids.DeltaRuntimeShim
-
-class Spark332DBRuntimeShim extends DeltaRuntimeShim {
-  override def getDeltaProvider: DeltaProvider = DeltaSpark332DBProvider
+/**
+ * Implements the Delta Probe interface for probing the Delta Lake provider on Databricks.
+ * @note This is instantiated via reflection from ShimLoader.
+ */
+class DeltaProbeImpl extends DeltaProbe {
+  // Delta Lake is built-in for Databricks instances, so no probing is necessary.
+  override def getDeltaProvider: DeltaProvider = DeltaSpark330DBProvider
 }
