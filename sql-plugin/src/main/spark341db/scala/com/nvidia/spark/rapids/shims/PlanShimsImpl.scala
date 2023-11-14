@@ -15,24 +15,7 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark": "320"}
-{"spark": "321"}
-{"spark": "321cdh"}
-{"spark": "321db"}
-{"spark": "322"}
-{"spark": "323"}
-{"spark": "324"}
-{"spark": "330"}
-{"spark": "330cdh"}
-{"spark": "330db"}
-{"spark": "331"}
-{"spark": "332"}
-{"spark": "332cdh"}
-{"spark": "332db"}
-{"spark": "333"}
-{"spark": "340"}
-{"spark": "341"}
-{"spark": "350"}
+{"spark": "341db"}
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims
 
@@ -40,10 +23,12 @@ import com.nvidia.spark.rapids.{GpuAlias, PlanShims}
 
 import org.apache.spark.sql.catalyst.expressions.{Alias, Expression}
 import org.apache.spark.sql.execution.{CommandResultExec, SparkPlan}
+import org.apache.spark.sql.execution.adaptive.ResultQueryStageExec
 
 class PlanShimsImpl extends PlanShims {
   def extractExecutedPlan(plan: SparkPlan): SparkPlan = plan match {
     case p: CommandResultExec => p.commandPhysicalPlan
+    case q: ResultQueryStageExec => q.plan
     case _ => plan
   }
 
