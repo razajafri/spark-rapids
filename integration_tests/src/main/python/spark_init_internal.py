@@ -53,6 +53,7 @@ def _spark__init():
     #TODO catch the ClassNotFound error that happens if the classpath is not set up properly and
     # make it a better error message
     _s.sparkContext.setLogLevel("WARN")
+    _s.conf.set("spark.rapids.sql.explain", "ALL")
     return _s
 
 
