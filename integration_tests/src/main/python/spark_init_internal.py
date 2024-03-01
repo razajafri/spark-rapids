@@ -13,13 +13,33 @@
 # limitations under the License.
 
 import os
+import pytest
 
 try:
     import pyspark
 except ImportError as error:
+
     import findspark
     findspark.init()
     import pyspark
+
+# Set up Logging
+# Create a named logger
+logger = logging.getLogger('__spark_init_internal__')
+logger.setLevel(logging.INFO)
+
+# Create a console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# Set the formatter for the console handler
+formatter = logging.Formatter("%(asctime)s %(levelname)-8s %(message)s",
+                              datefmt="%Y-%m-%d %H:%M:%S")
+
+console_handler.setFormatter(formatter)
+
+# Add the console handler to the logger
+logger.addHandler(console_handler)
 
 _DRIVER_ENV = 'PYSP_TEST_spark_driver_extraJavaOptions'
 
@@ -41,8 +61,9 @@ def _spark__init():
 
     if ('PYTEST_XDIST_WORKER' in os.environ):
         wid = os.environ['PYTEST_XDIST_WORKER']
-        _handle_derby_dir(_sb, driver_opts, wid)
         _handle_event_log_dir(_sb, wid)
+        driver_opts = _handle_configure_log_dir(_sb, wid, driver_opts)
+        _handle_derby_dir(_sb, driver_opts, wid)
     else:
         _sb.config('spark.driver.extraJavaOptions', driver_opts)
         _handle_event_log_dir(_sb, 'gw0')
@@ -63,6 +84,27 @@ def _handle_derby_dir(sb, driver_opts, wid):
         os.makedirs(d)
     sb.config('spark.driver.extraJavaOptions', driver_opts + ' -Dderby.system.home={}'.format(d))
 
+
+def _handle_configure_log_dir(_sb, wid, driver_opts):
+    current_directory = os.path.abspath(os.path.curdir)
+    log_file = '{}/{}_worker_logs.log'.format(current_directory, wid)
+
+    from conftest import get_std_input_path
+    std_input_path = get_std_input_path()
+    f = driver_opts + ' -Dlog4j.configuration=file://{}/xdist_it_log4j.properties '.format(std_input_path) + \
+        ' -Dlogfile={}'.format(log_file)
+
+
+    # Create file handler to output logs into corresponding worker file
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.INFO)
+
+    file_handler.setFormatter(formatter)
+
+    # Add the file handler to the logger
+    logger.addHandler(file_handler)
+
+    return f
 
 def _handle_event_log_dir(sb, wid):
     if os.environ.get('SPARK_EVENTLOG_ENABLED', str(True)).lower() in [
@@ -109,3 +151,7 @@ def get_spark_i_know_what_i_am_doing():
 
 def spark_version():
     return _spark.version
+
+@pytest.fixture(scope='function', autouse=True)
+def log_test_name(request):
+    logger.info("Running test '{}'".format(request.node.nodeid))
