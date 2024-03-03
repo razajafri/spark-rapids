@@ -474,11 +474,11 @@ trait GpuDecimalMultiplyBase extends GpuExpression {
   }
 
   override def columnarEval(batch: ColumnarBatch): GpuColumnVector = {
-    if (useLongMultiply) {
-      longMultiply(batch)
-    } else {
+//    if (useLongMultiply) {
+//      longMultiply(batch)
+//    } else {
       regularMultiply(batch)
-    }
+//    }
   }
 }
 
