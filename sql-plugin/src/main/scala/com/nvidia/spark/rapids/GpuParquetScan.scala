@@ -708,7 +708,9 @@ private case class GpuParquetFileFilterHandler(
                 val inputFile = new HMBInputFile(serialized)
 
                 // We already filtered the ranges so no need to do more here...
-                ParquetFileReader.readFooter(inputFile, ParquetMetadataConverter.NO_FILTER)
+                val parquetReadOptions = org.apache.parquet.ParquetReadOptions.builder().
+                  withMetadataFilter(ParquetMetadataConverter.NO_FILTER).build()
+                ParquetFileReader.open(inputFile, parquetReadOptions).getFooter
               }
             }
           case _ =>
