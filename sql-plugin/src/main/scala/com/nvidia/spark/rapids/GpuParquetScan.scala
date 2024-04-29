@@ -659,8 +659,15 @@ private case class GpuParquetFileFilterHandler(
             }
           }
         }.getOrElse {
-          ParquetFileReader.readFooter(conf, filePath,
-            ParquetMetadataConverter.range(file.start, file.start + file.length))
+          val fileWriter = new java.io.FileWriter("/home/ubuntu/tmp/mylog.txt")
+          try {
+            fileWriter.write(s"Total confs in gpuParquetScan: ${conf.size()}")
+            org.apache.hadoop.conf.Configuration.dumpConfiguration(conf, fileWriter)
+            ParquetFileReader.readFooter(conf, filePath,
+              ParquetMetadataConverter.range(file.start, file.start + file.length))
+          } finally {
+            fileWriter.close()
+          }
         }
       }
     }
