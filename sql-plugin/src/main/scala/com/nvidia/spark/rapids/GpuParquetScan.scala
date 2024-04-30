@@ -16,7 +16,7 @@
 
 package com.nvidia.spark.rapids
 
-import java.io.{Closeable, EOFException, FileNotFoundException, IOException, OutputStream}
+import java.io.{Closeable, EOFException, FileNotFoundException, IOException, OutputStream, StringWriter}
 import java.net.URI
 import java.nio.ByteBuffer
 import java.nio.channels.SeekableByteChannel
@@ -659,15 +659,12 @@ private case class GpuParquetFileFilterHandler(
             }
           }
         }.getOrElse {
-          val fileWriter = new java.io.FileWriter("/home/ubuntu/tmp/mylog.txt")
-          try {
-            fileWriter.write(s"Total confs in gpuParquetScan: ${conf.size()}")
-            org.apache.hadoop.conf.Configuration.dumpConfiguration(conf, fileWriter)
-            ParquetFileReader.readFooter(conf, filePath,
-              ParquetMetadataConverter.range(file.start, file.start + file.length))
-          } finally {
-            fileWriter.close()
-          }
+          logInfo(s"Total confs in gpuParquetScan: ${conf.size()}")
+          val stringWriter = new StringWriter()
+          org.apache.hadoop.conf.Configuration.dumpConfiguration(conf, stringWriter)
+          logInfo(s"confs: ${stringWriter.toString}")
+          ParquetFileReader.readFooter(conf, filePath,
+            ParquetMetadataConverter.range(file.start, file.start + file.length))
         }
       }
     }

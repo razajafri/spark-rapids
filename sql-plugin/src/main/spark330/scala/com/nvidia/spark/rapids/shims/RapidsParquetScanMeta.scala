@@ -56,10 +56,12 @@ class RapidsParquetScanMeta(
   }
 
   override def convertToGpu(): GpuScan = {
-    val fileWriter = new java.io.FileWriter("/home/ubuntu/tmp/mylog.txt")
+    val fileWriter = new java.io.FileWriter("/home/ubuntu/mylog.txt")
     try {
       fileWriter.write(s"Total confs in cpu: ${pScan.hadoopConf.size()}")
-      org.apache.hadoop.conf.Configuration.dumpConfiguration(pScan.hadoopConf, fileWriter)
+      val stringWriter = new java.io.StringWriter()
+      org.apache.hadoop.conf.Configuration.dumpConfiguration(pScan.hadoopConf, stringWriter)
+      fileWriter.write(s"confs: ${stringWriter.toString}")
       GpuParquetScan(pScan.sparkSession,
         pScan.hadoopConf,
         pScan.fileIndex,
