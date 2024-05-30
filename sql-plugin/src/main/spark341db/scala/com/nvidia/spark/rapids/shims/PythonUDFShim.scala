@@ -26,7 +26,7 @@ import com.nvidia.spark.rapids.window.GpuWindowExpression
 
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.rapids.aggregate.GpuAggregateExpression
-import org.apache.spark.sql.rapids.execution.python.GpuPythonUDAF
+import org.apache.spark.sql.rapids.execution.python.shims.GpuPythonUDAF
 
 object PythonUDFShim {
   def getUDFExpressions(exp: Seq[Expression]): Seq[GpuPythonUDAF] = {

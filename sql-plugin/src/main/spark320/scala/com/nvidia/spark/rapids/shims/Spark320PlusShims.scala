@@ -70,7 +70,7 @@ import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.rapids._
 import org.apache.spark.sql.rapids.aggregate._
 import org.apache.spark.sql.rapids.execution._
-import org.apache.spark.sql.rapids.execution.python._
+import org.apache.spark.sql.rapids.execution.python.shims._
 import org.apache.spark.sql.rapids.shims._
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.CalendarInterval

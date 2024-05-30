@@ -15,28 +15,7 @@
  */
 
 /*** spark-rapids-shim-json-lines
-{"spark": "311"}
-{"spark": "312"}
-{"spark": "313"}
-{"spark": "320"}
-{"spark": "321"}
-{"spark": "321cdh"}
-{"spark": "322"}
-{"spark": "323"}
-{"spark": "324"}
-{"spark": "330"}
-{"spark": "330cdh"}
-{"spark": "331"}
-{"spark": "332"}
-{"spark": "332cdh"}
-{"spark": "333"}
-{"spark": "334"}
-{"spark": "340"}
-{"spark": "341"}
-{"spark": "342"}
-{"spark": "343"}
-{"spark": "350"}
-{"spark": "351"}
+{"spark": "400"}
 spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.rapids.execution.python.shims
 
@@ -47,7 +26,7 @@ import org.apache.spark.sql.vectorized.ColumnarBatch
 
 case class GpuGroupedPythonRunnerFactory(
     conf: org.apache.spark.sql.internal.SQLConf,
-    chainedFunc: Seq[ChainedPythonFunctions],
+    chainedFunc: Seq[(ChainedPythonFunctions, Long)],
     argOffsets: Array[Array[Int]],
     dedupAttrs: StructType,
     pythonOutputSchema: StructType,

@@ -16,8 +16,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.spark.sql.rapids.execution.python
+/*** spark-rapids-shim-json-lines
+{"spark": "400"}
+spark-rapids-shim-json-lines ***/
+package org.apache.spark.sql.rapids.execution.python.shims
 
 import ai.rapids.cudf._
 import com.nvidia.spark.rapids._
@@ -64,7 +66,7 @@ abstract class GpuPythonFunction(
     children: Seq[Expression],
     evalType: Int,
     udfDeterministic: Boolean,
-    resultId: ExprId = NamedExpression.newExprId)
+    val resultId: ExprId = NamedExpression.newExprId)
   extends Expression with GpuUnevaluable with NonSQLExpression
     with UserDefinedExpression with GpuAggregateWindowFunction with Serializable {
 

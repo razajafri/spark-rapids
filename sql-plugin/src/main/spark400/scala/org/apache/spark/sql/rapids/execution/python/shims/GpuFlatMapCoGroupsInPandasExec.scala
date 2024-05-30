@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2023, NVIDIA CORPORATION.
+ * Copyright (c) 2020-2024, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+/*** spark-rapids-shim-json-lines
+{"spark": "400"}
+spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.rapids.execution.python
 
 import com.nvidia.spark.rapids._
@@ -27,8 +29,9 @@ import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.plans.physical.{AllTuples, ClusteredDistribution, Distribution, Partitioning}
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.python.FlatMapCoGroupsInPandasExec
+import org.apache.spark.sql.rapids.execution.python._
 import org.apache.spark.sql.rapids.execution.python.BatchGroupUtils._
-import org.apache.spark.sql.rapids.execution.python.shims.GpuCoGroupedArrowPythonRunner
+import org.apache.spark.sql.rapids.execution.python.shims._
 import org.apache.spark.sql.rapids.shims.{ArrowUtilsShim, DataTypeUtilsShim}
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
@@ -108,7 +111,8 @@ case class GpuFlatMapCoGroupsInPandasExec(
   private val sessionLocalTimeZone = conf.sessionLocalTimeZone
   private val pythonRunnerConf = ArrowUtilsShim.getPythonRunnerConfMap(conf)
   private val pandasFunction = udf.asInstanceOf[GpuPythonUDF].func
-  private val chainedFunc = Seq(ChainedPythonFunctions(Seq(pandasFunction)))
+  private val chainedFunc = Seq((ChainedPythonFunctions(Seq(pandasFunction)),
+    udf.asInstanceOf[GpuPythonUDF].resultId.id))
 
   override def producedAttributes: AttributeSet = AttributeSet(output)
 
@@ -145,7 +149,7 @@ case class GpuFlatMapCoGroupsInPandasExec(
 
     left.executeColumnar().zipPartitions(right.executeColumnar())  { (leftIter, rightIter) =>
       if (isPythonOnGpuEnabled) {
-        GpuPythonHelper.injectGpuInfo(chainedFunc, isPythonOnGpuEnabled)
+        GpuPythonHelper.injectGpuInfo(chainedFunc.map(_._1), isPythonOnGpuEnabled)
         PythonWorkerSemaphore.acquireIfNecessary(TaskContext.get())
       }
 

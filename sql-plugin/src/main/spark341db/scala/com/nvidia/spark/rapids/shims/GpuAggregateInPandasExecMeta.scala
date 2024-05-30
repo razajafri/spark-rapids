@@ -26,7 +26,7 @@ import com.nvidia.spark.rapids._
 
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.execution.python.AggregateInPandasExec
-import org.apache.spark.sql.rapids.execution.python.{GpuAggregateInPandasExec, GpuPythonUDAF}
+import org.apache.spark.sql.rapids.execution.python.shims.{GpuAggregateInPandasExec, GpuPythonUDAF}
 
 class GpuAggregateInPandasExecMeta(
     aggPandas: AggregateInPandasExec,

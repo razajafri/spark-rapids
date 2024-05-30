@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+/*** spark-rapids-shim-json-lines
+{"spark": "400"}
+spark-rapids-shim-json-lines ***/
 package org.apache.spark.sql.rapids.execution.python
 
 import com.nvidia.spark.rapids._
@@ -27,8 +29,9 @@ import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.plans.physical.{AllTuples, ClusteredDistribution, Distribution, Partitioning}
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.python.FlatMapGroupsInPandasExec
+import org.apache.spark.sql.rapids.execution.python._
 import org.apache.spark.sql.rapids.execution.python.BatchGroupUtils._
-import org.apache.spark.sql.rapids.execution.python.shims.GpuGroupedPythonRunnerFactory
+import org.apache.spark.sql.rapids.execution.python.shims._
 import org.apache.spark.sql.rapids.shims.DataTypeUtilsShim
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
@@ -111,7 +114,8 @@ case class GpuFlatMapGroupsInPandasExec(
     val (mNumInputRows, mNumInputBatches, mNumOutputRows, mNumOutputBatches) = commonGpuMetrics()
 
     lazy val isPythonOnGpuEnabled = GpuPythonHelper.isPythonOnGpuEnabled(conf)
-    val chainedFunc = Seq(ChainedPythonFunctions(Seq(pandasFunction)))
+    val chainedFunc = Seq((ChainedPythonFunctions(Seq(pandasFunction)),
+      func.asInstanceOf[GpuPythonUDF].resultId.id))
     val localOutput = output
     val localChildOutput = child.output
     // Python wraps the resulting columns in a single struct column.
@@ -129,7 +133,7 @@ case class GpuFlatMapGroupsInPandasExec(
     // Start processing. Map grouped batches to ArrowPythonRunner results.
     child.executeColumnar().mapPartitionsInternal { inputIter =>
       if (isPythonOnGpuEnabled) {
-        GpuPythonHelper.injectGpuInfo(chainedFunc, isPythonOnGpuEnabled)
+        GpuPythonHelper.injectGpuInfo(chainedFunc.map(_._1), isPythonOnGpuEnabled)
         PythonWorkerSemaphore.acquireIfNecessary(TaskContext.get())
       }
 

@@ -43,7 +43,7 @@ package com.nvidia.spark.rapids.shims
 import com.nvidia.spark.rapids.window.GpuWindowExpression
 
 import org.apache.spark.sql.catalyst.expressions.Expression
-import org.apache.spark.sql.rapids.execution.python.GpuPythonUDF
+import org.apache.spark.sql.rapids.execution.python.shims.GpuPythonUDF
 
 object PythonUDFShim {
   def getUDFExpressions(exp: Seq[Expression]): Seq[GpuPythonUDF] = {

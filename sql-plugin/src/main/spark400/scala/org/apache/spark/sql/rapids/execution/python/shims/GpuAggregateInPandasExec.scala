@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.spark.sql.rapids.execution.python
+/*** spark-rapids-shim-json-lines
+{"spark": "400"}
+spark-rapids-shim-json-lines ***/
+package org.apache.spark.sql.rapids.execution.python.shims
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -31,7 +33,8 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.plans.physical.{AllTuples, ClusteredDistribution, Distribution, Partitioning}
 import org.apache.spark.sql.execution.SparkPlan
-import org.apache.spark.sql.rapids.execution.python.shims.GpuGroupedPythonRunnerFactory
+import org.apache.spark.sql.rapids.execution.python._
+import org.apache.spark.sql.rapids.execution.python.GpuPythonExecBase
 import org.apache.spark.sql.rapids.shims.DataTypeUtilsShim
 import org.apache.spark.sql.types.{DataType, StructField, StructType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
@@ -75,15 +78,15 @@ case class GpuAggregateInPandasExec(
   }
 
   private def collectFunctions(udf: GpuPythonFunction):
-  (ChainedPythonFunctions, Seq[Expression]) = {
+     ((ChainedPythonFunctions, Long), Seq[Expression]) = {
     udf.children match {
       case Seq(u: GpuPythonFunction) =>
-        val (chained, children) = collectFunctions(u)
-        (ChainedPythonFunctions(chained.funcs ++ Seq(udf.func)), children)
+        val ((chained, _), children) = collectFunctions(u)
+        ((ChainedPythonFunctions(chained.funcs ++ Seq(udf.func)), udf.resultId.id), children)
       case children =>
         // There should not be any other UDFs, or the children can't be evaluated directly.
-        assert(children.forall(_.find(_.isInstanceOf[GpuPythonFunction]).isEmpty))
-        (ChainedPythonFunctions(Seq(udf.func)), udf.children)
+        assert(children.forall(!_.exists(_.isInstanceOf[GpuPythonFunction])))
+        ((ChainedPythonFunctions(Seq(udf.func)), udf.resultId.id), udf.children)
     }
   }
 
@@ -141,7 +144,7 @@ case class GpuAggregateInPandasExec(
       val context = TaskContext.get()
 
       if (isPythonOnGpuEnabled) {
-        GpuPythonHelper.injectGpuInfo(pyFuncs, isPythonOnGpuEnabled)
+        GpuPythonHelper.injectGpuInfo(pyFuncs.map(_._1), isPythonOnGpuEnabled)
         PythonWorkerSemaphore.acquireIfNecessary(context)
       }
 

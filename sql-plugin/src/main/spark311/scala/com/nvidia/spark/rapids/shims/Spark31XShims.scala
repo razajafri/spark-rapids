@@ -50,7 +50,7 @@ import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.rapids._
 import org.apache.spark.sql.rapids.aggregate._
 import org.apache.spark.sql.rapids.execution.GpuCustomShuffleReaderExec
-import org.apache.spark.sql.rapids.execution.python._
+import org.apache.spark.sql.rapids.execution.python.shims._
 import org.apache.spark.sql.types._
 
 // 31x nondb shims, used by 311cdh and 31x

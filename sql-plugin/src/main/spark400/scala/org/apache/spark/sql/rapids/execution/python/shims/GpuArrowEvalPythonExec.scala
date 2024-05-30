@@ -16,8 +16,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.spark.sql.rapids.execution.python
+/*** spark-rapids-shim-json-lines
+{"spark": "400"}
+spark-rapids-shim-json-lines ***/
+package org.apache.spark.sql.rapids.execution.python.shims
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -35,7 +37,8 @@ import org.apache.spark.api.python._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.execution.SparkPlan
-import org.apache.spark.sql.rapids.execution.python.shims.GpuArrowPythonRunner
+import org.apache.spark.sql.rapids.execution.python._
+import org.apache.spark.sql.rapids.execution.python.shims.{GpuArrowPythonRunner, GpuPythonUDF}
 import org.apache.spark.sql.rapids.shims.{ArrowUtilsShim, DataTypeUtilsShim}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.vectorized.ColumnarBatch
@@ -362,15 +365,16 @@ case class GpuArrowEvalPythonExec(
 
   override def producedAttributes: AttributeSet = AttributeSet(resultAttrs)
 
-  private def collectFunctions(udf: GpuPythonUDF): (ChainedPythonFunctions, Seq[Expression]) = {
+  private def collectFunctions(udf: GpuPythonUDF):
+     ((ChainedPythonFunctions, Long), Seq[Expression]) = {
     udf.children match {
       case Seq(u: GpuPythonUDF) =>
         val (chained, children) = collectFunctions(u)
-        (ChainedPythonFunctions(chained.funcs ++ Seq(udf.func)), children)
+        ((ChainedPythonFunctions(chained._1.funcs ++ Seq(udf.func)), udf.resultId.id), children)
       case children =>
         // There should not be any other UDFs, or the children can't be evaluated directly.
         assert(children.forall(_.find(_.isInstanceOf[GpuPythonUDF]).isEmpty))
-        (ChainedPythonFunctions(Seq(udf.func)), udf.children)
+        ((ChainedPythonFunctions(Seq(udf.func)), udf.resultId.id), udf.children)
     }
   }
 
@@ -437,7 +441,7 @@ case class GpuArrowEvalPythonExec(
       }
 
       if (isPythonOnGpuEnabled) {
-        GpuPythonHelper.injectGpuInfo(pyFuncs, isPythonOnGpuEnabled)
+        GpuPythonHelper.injectGpuInfo(pyFuncs.map(_._1), isPythonOnGpuEnabled)
         PythonWorkerSemaphore.acquireIfNecessary(context)
       }
 
