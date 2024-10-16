@@ -226,7 +226,12 @@ abstract class RapidsMeta[INPUT <: BASE, BASE, OUTPUT <: BASE](
   /**
    * Returns true iff this could be replaced.
    */
-  final def canThisBeReplaced: Boolean = cannotBeReplacedReasons.exists(_.isEmpty)
+  final def canThisBeReplaced: Boolean = {
+    if (!cannotBeReplacedReasons.isEmpty) {
+      cannotBeReplacedReasons.foreach(println)
+    }
+    cannotBeReplacedReasons.exists(_.isEmpty)
+  }
 
   /**
    * Returns true iff this must be replaced because its children have already been

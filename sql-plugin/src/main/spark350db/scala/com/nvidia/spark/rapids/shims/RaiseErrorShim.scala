@@ -19,10 +19,24 @@
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims
 
-import com.nvidia.spark.rapids.ExprRule
+import com.nvidia.spark.rapids.{ExprRule, GpuOverrides}
+import com.nvidia.spark.rapids.{ExprChecks, GpuExpression, TypeSig, BinaryExprMeta}
 
-import org.apache.spark.sql.catalyst.expressions.Expression
+import org.apache.spark.sql.catalyst.expressions.{Expression, RaiseError}
+import org.apache.spark.sql.rapids.shims.GpuRaiseError
 
 object RaiseErrorShim {
-  val exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Map.empty
+  val exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = {
+    Seq(GpuOverrides.expr[RaiseError](
+      "Throw an exception",
+      ExprChecks.binaryProject(
+        TypeSig.NULL, TypeSig.NULL,
+        ("lhs", TypeSig.STRING, TypeSig.STRING),
+        ("rhs", TypeSig.MAP.nested(TypeSig.STRING), TypeSig.MAP.nested(TypeSig.STRING))),
+      (a, conf, p, r) => new BinaryExprMeta[RaiseError](a, conf, p, r) {
+        override def convertToGpu(lhs: Expression, rhs: Expression): GpuExpression = { 
+          GpuRaiseError(lhs, rhs)
+        }
+      })).map(r => (r.getClassFor.asSubclass(classOf[Expression]), r)).toMap
+  }
 }
