@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, NVIDIA CORPORATION.
+ * Copyright (c) 2023-2024, NVIDIA CORPORATION.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /*** spark-rapids-shim-json-lines
-{"spark": "400"}
+{"spark": "350db"}
 spark-rapids-shim-json-lines ***/
-package org.apache.spark.sql.rapids.execution
+package com.nvidia.spark.rapids.shims.spark350db
 
-import com.nvidia.spark.rapids.{DataFromReplacementRule, GpuExec, RapidsConf, RapidsMeta}
+import com.nvidia.spark.rapids.{DatabricksShimVersion, ShimVersion}
 
-import org.apache.spark.sql.execution.SubqueryBroadcastExec
+import org.apache.spark.SparkEnv
 
-class GpuSubqueryBroadcastMeta(
-    s: SubqueryBroadcastExec,
-    conf: RapidsConf,
-    p: Option[RapidsMeta[_, _, _]],
-    r: DataFromReplacementRule) extends
-    GpuSubqueryBroadcastMetaBase(s, conf, p, r) {
-  override def convertToGpu(): GpuExec = {
-    GpuSubqueryBroadcastExec(s.name, s.indices, s.buildKeys, broadcastBuilder())(
-      getBroadcastModeKeyExprs)
+object SparkShimServiceProvider {
+  val VERSION = DatabricksShimVersion(3, 5, 0)
+}
+
+class SparkShimServiceProvider extends com.nvidia.spark.rapids.SparkShimServiceProvider {
+
+  override def getShimVersion: ShimVersion = SparkShimServiceProvider.VERSION
+
+  def matchesVersion(version: String): Boolean = {
+    SparkEnv.get.conf.get("spark.databricks.clusterUsageTags.sparkVersion", "").startsWith("14.3.")
   }
 }

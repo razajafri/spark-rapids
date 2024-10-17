@@ -14,15 +14,23 @@
  * limitations under the License.
  */
 /*** spark-rapids-shim-json-lines
+{"spark": "350db"}
 {"spark": "400"}
 spark-rapids-shim-json-lines ***/
-package com.nvidia.spark.rapids.shims
+package org.apache.spark.sql.rapids.execution
 
-import com.nvidia.spark.rapids.{ExprRule, GpuOverrides}
-import com.nvidia.spark.rapids.{ExprChecks, GpuExpression, TypeSig, UnaryExprMeta}
+import com.nvidia.spark.rapids.{DataFromReplacementRule, GpuExec, RapidsConf, RapidsMeta}
 
-import org.apache.spark.sql.catalyst.expressions.{Expression, RaiseError}
+import org.apache.spark.sql.execution.SubqueryBroadcastExec
 
-object RaiseErrorShim {
-  val exprs: Map[Class[_ <: Expression], ExprRule[_ <: Expression]] = Map.empty
+class GpuSubqueryBroadcastMeta(
+    s: SubqueryBroadcastExec,
+    conf: RapidsConf,
+    p: Option[RapidsMeta[_, _, _]],
+    r: DataFromReplacementRule) extends
+    GpuSubqueryBroadcastMetaBase(s, conf, p, r) {
+  override def convertToGpu(): GpuExec = {
+    GpuSubqueryBroadcastExec(s.name, s.indices, s.buildKeys, broadcastBuilder())(
+      getBroadcastModeKeyExprs)
+  }
 }
