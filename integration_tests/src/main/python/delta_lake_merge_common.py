@@ -39,10 +39,14 @@ def delta_sql_merge_test(spark_tmp_path, spark_tmp_table_factory, use_cdf,
     def setup_tables(spark):
         setup_delta_dest_tables(spark, data_path, dest_table_func, use_cdf, partition_columns)
         src_table_func(spark).createOrReplaceTempView(src_table)
+        spark.sql(f"select * from {src_table}").write.mode("overwrite").parquet("/tmp/raza_src_table")
 
     def do_merge(spark, path):
         dest_table = spark_tmp_table_factory.get()
         read_delta_path(spark, path).createOrReplaceTempView(dest_table)
+        spark.sql(f"select * from {dest_table}").write.mode("overwrite").parquet("/tmp/raza_dest_table")
+        print("source: " + src_table)
+        print("dest: " + dest_table)
         return spark.sql(merge_sql.format(src_table=src_table, dest_table=dest_table)).collect()
     with_cpu_session(setup_tables)
     check_func(data_path, do_merge)
