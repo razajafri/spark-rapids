@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit.NANOSECONDS
 import scala.collection.mutable.HashMap
 
 import com.nvidia.spark.rapids._
+import com.nvidia.spark.rapids.delta.DeltaProvider
 import com.nvidia.spark.rapids.filecache.FileCacheLocalityManager
 import com.nvidia.spark.rapids.shims.{GpuDataSourceRDD, PartitionedFileUtilsShim, SparkShimImpl, StaticPartitionShims}
 import org.apache.hadoop.fs.Path
@@ -326,8 +327,15 @@ case class GpuFileSourceScanExec(
    * at a time.
    */
   lazy val inputRDD: RDD[InternalRow] = {
-    val readFile: Option[(PartitionedFile) => Iterator[InternalRow]] =
-      if (isPerFileReadEnabled) {
+    val readFile: Option[(PartitionedFile) => Iterator[InternalRow]] = {
+      // We override the Parquet reader type for delta lake meta queries on Databricks 14.3
+      val overrideParquetReaderType =
+        DeltaProvider().isSupportedFormat(relation.fileFormat.getClass) &&
+          (ShimLoader.getShimVersion match {
+            case DatabricksShimVersion(3, 5, 0, "14.3") => true
+            case _ => false
+          })
+      if (isPerFileReadEnabled || overrideParquetReaderType) {
         val reader = gpuFormat.buildReaderWithPartitionValuesAndMetrics(
           sparkSession = relation.sparkSession,
           dataSchema = relation.dataSchema,
@@ -342,6 +350,7 @@ case class GpuFileSourceScanExec(
       } else {
         None
       }
+    }
 
     val readRDD = if (bucketedScan) {
       createBucketedReadRDD(relation.bucketSpec.get, readFile, dynamicallySelectedPartitions,
