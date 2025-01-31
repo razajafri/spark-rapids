@@ -301,8 +301,8 @@ def test_delta_overwrite_schema_evolution_arrays(spark_tmp_path, enable_deletion
         spark.sql(f"INSERT INTO delta.`{src_path}` VALUES (1, '2022-11-01', " +
                   "array(struct(1, struct('s1', DATE'2022-11-01'), struct('s1'))))")
         _create_cpu_gpu_tables(spark, data_path, dst_schema, enable_deletion_vectors=enable_deletion_vectors)
-    with_cpu_session(setup_tables, conf=copy_and_update(writer_confs, deletion_vector_conf))
-    confs = copy_and_update(_delta_confs, {"spark.databricks.delta.schema.autoMerge.enabled": "true"}, deletion_vector_conf)
+    with_cpu_session(setup_tables, conf=writer_confs)
+    confs = copy_and_update(_delta_confs, {"spark.databricks.delta.schema.autoMerge.enabled": "true"})
     _assert_sql(data_path, confs,
                 "INSERT INTO delta.`{path}` VALUES(2, DATE'2022-11-02', array(struct(2, struct('s2'))))")
     _assert_sql(data_path, confs, "INSERT OVERWRITE delta.`{path}` " +
