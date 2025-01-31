@@ -77,7 +77,7 @@ def _assert_sql(data_path, confs, query):
                           {"spark.rapids.sql.format.parquet.enabled": "false"},
                           {"spark.rapids.sql.format.parquet.write.enabled": "false"}], ids=idfn)
 @pytest.mark.skipif(is_before_spark_320(), reason="Delta Lake writes are not supported before Spark 3.2.x")
-def test_delta_write_disabled_fallback(spark_tmp_path, disable_conf):
+def test_delta_write_disabled_fallback(spark_tmp_path, disable_conf, enable_deletion_vectors):
     data_path = spark_tmp_path + "/DELTA_DATA"
     assert_gpu_fallback_write(
         lambda spark, path: unary_op_df(spark, int_gen).coalesce(1).write.format("delta").save(path),

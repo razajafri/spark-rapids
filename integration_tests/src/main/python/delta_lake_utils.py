@@ -47,7 +47,8 @@ def deletion_vector_values_with_reasons(true_xfail_reason=None, false_xfail_reas
 
     return enable_deletion_vector
 
-deletion_vector_values = deletion_vector_values_with_reasons(true_xfail_reason='https://github.com/NVIDIA/spark-rapids/issues/12042')
+deletion_vector_values_with_xfailing_scans_for_350DB143 = deletion_vector_values_with_reasons(true_xfail_reason='https://github.com/NVIDIA/spark-rapids/issues/12042')
+deletion_vector_values = deletion_vector_values_with_reasons()
 
 delta_writes_enabled_conf = {"spark.rapids.sql.format.delta.write.enabled": "true"}
 
