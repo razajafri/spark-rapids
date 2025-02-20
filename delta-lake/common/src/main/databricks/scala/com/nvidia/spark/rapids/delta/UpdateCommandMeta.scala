@@ -44,7 +44,8 @@ class UpdateCommandMeta(
       updateCmd.tahoeFileIndex,
       updateCmd.target,
       updateCmd.updateExpressions,
-      updateCmd.condition
+      updateCmd.condition,
+      updateCmd.catalogTable
     )
   }
 }
@@ -71,7 +72,8 @@ class UpdateCommandEdgeMeta(
       updateCmd.tahoeFileIndex,
       updateCmd.target,
       updateCmd.updateExpressions,
-      updateCmd.condition
+      updateCmd.condition,
+      updateCmd.catalogTable
     )
   }
 }
