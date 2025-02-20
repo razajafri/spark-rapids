@@ -21,9 +21,8 @@
 
 package com.databricks.sql.transaction.tahoe.rapids
 
-import com.databricks.sql.transaction.tahoe.{DeltaLog, DeltaOperations, DeltaTableUtils, DeltaUDF, OptimisticTransaction}
+import com.databricks.sql.transaction.tahoe.{DeltaLog, DeltaOperations, DeltaTableUtils, DeltaUDF, NumRecordsStats, OptimisticTransaction, RowTracking}
 import com.databricks.sql.transaction.tahoe.DeltaCommitTag._
-import com.databricks.sql.transaction.tahoe.RowTracking
 import com.databricks.sql.transaction.tahoe.actions.{AddCDCFile, AddFile, FileAction}
 import com.databricks.sql.transaction.tahoe.commands.{DeltaCommand, DMLUtils, UpdateCommand, UpdateMetric}
 import com.databricks.sql.transaction.tahoe.files.{TahoeBatchFileIndex, TahoeFileIndex}
@@ -109,7 +108,8 @@ case class GpuUpdateCommand(
     val (metadataPredicates, dataPredicates) =
       DeltaTableUtils.splitMetadataAndDataPredicates(
         updateCondition, txn.metadata.partitionColumns, sparkSession)
-    val candidateFiles = txn.filterFiles(metadataPredicates ++ dataPredicates)
+    val candidateFiles =
+      txn.filterFiles(metadataPredicates ++ dataPredicates, keepNumRecords = true)
     val nameToAddFile = generateCandidateFileMap(deltaLog.dataPath, candidateFiles)
 
     scanTimeMs = (System.nanoTime() - startTime) / 1000 / 1000
@@ -221,6 +221,9 @@ case class GpuUpdateCommand(
         sparkSession.sparkContext, executionId, metrics.values.toSeq)
     }
 
+    val finalActions = createSetTransaction(sparkSession, deltaLog).toSeq ++ totalActions
+    val numRecordsStats = NumRecordsStats.fromActions(finalActions)
+
     recordDeltaEvent(
       deltaLog,
       "delta.dml.update.stats",
@@ -236,7 +239,9 @@ case class GpuUpdateCommand(
         // We don't support deletion vectors
         numDeletionVectorsAdded = 0,
         numDeletionVectorsRemoved = 0,
-        numDeletionVectorsUpdated = 0)
+        numDeletionVectorsUpdated = 0,
+        numLogicalRecordsAdded = numRecordsStats.numLogicalRecordsAdded,
+        numLogicalRecordsRemoved = numRecordsStats.numLogicalRecordsRemoved)
     )
   }
 
