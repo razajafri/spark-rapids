@@ -92,7 +92,7 @@ def test_delta_delete_disabled_fallback(spark_tmp_path, disable_conf, enable_del
 @delta_lake
 @ignore_order
 @pytest.mark.parametrize("use_cdf", [True, False], ids=idfn)
-@pytest.mark.skipif(not supports_delta_lake_deletion_vectors(), \
+@pytest.mark.skipif(supports_delta_lake_deletion_vectors(), \
     reason="Deletion vectors new in Delta Lake 2.4 / Apache Spark 3.4")
 def test_delta_deletion_vector_fallback(spark_tmp_path, use_cdf):
     data_path = spark_tmp_path + "/DELTA_DATA"

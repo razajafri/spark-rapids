@@ -19,13 +19,22 @@
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims
 
+import com.nvidia.spark.rapids.RapidsConf
+
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.execution.FileSourceScanExec
 
 object DeltaLakeUtils {
   /* Allow skip_row on Databricks but block all other columns starting with _databricks_internal
   to avoid any unforeseen circumstances*/
   def isDatabricksDeltaLakeScan(f: FileSourceScanExec): Boolean = {
-    f.requiredSchema.fields.exists(f => f.name.startsWith("_databricks_internal") &&
+    val readDeletionVectors = f.requiredSchema.fields.exists(
+      f => f.name.startsWith("_databricks_internal") &&
       !f.name.startsWith("_databricks_internal_edge_computed_column_skip_row"))
+    if (readDeletionVectors) {
+      val spark = SparkSession.active
+      spark.conf.set(RapidsConf.PARQUET_READER_TYPE.key, "PERFILE")
+    }
+    readDeletionVectors
   }
 }
