@@ -783,6 +783,28 @@
             <modules>
                 <module>delta-lake/delta-stub</module>
             </modules>
+	</profile>
+        <profile>
+            <id>release400db</id>
+            <activation>
+                <property>
+                    <name>buildver</name>
+                    <value>400db</value>
+                </property>
+            </activation>
+            <properties>
+                <spark.version.classifier>spark400db</spark.version.classifier>
+                <spark.version>${spark400db.version}</spark.version>
+                <spark.test.version>${spark400db.version}</spark.test.version>
+                <hadoop.client.version>3.3.1</hadoop.client.version>
+                <rat.consoleOutput>true</rat.consoleOutput>
+                <parquet.hadoop.version>1.12.0</parquet.hadoop.version>
+                <rapids.delta.artifactId1>rapids-4-spark-delta-stub</rapids.delta.artifactId1>
+            </properties>
+            <modules>
+                <module>shim-deps/databricks</module>
+                <module>delta-lake/delta-stub</module>
+            </modules>
         </profile>
         --><!-- #endif scala-2.13 -->
         <profile>
@@ -967,6 +989,7 @@
         <spark332db.version>3.3.2-databricks</spark332db.version>
         <spark341db.version>3.4.1-databricks</spark341db.version>
         <spark350db143.version>3.5.0-databricks-143</spark350db143.version>
+        <spark400db.version>4.0.0-databricks</spark400db.version>
         <spark350.version>3.5.0</spark350.version>
         <spark351.version>3.5.1</spark351.version>
         <spark352.version>3.5.2</spark352.version>
@@ -1675,7 +1698,7 @@ This will force full Scala code rebuild in downstream modules.
                         <requireProperty>
                             <regexMessage>Unexpected buildver value ${buildver} for a Scala 2.13 build, only Apache Spark versions 3.3.0 (330) and higher are supported, no vendor builds such as 330db</regexMessage>
                             <property>buildver</property>
-                            <regex>(?:[3-9][3-9]|[4-9][0-9])[0-9]</regex>
+                            <regex>(?:[3-9][3-9]|[4-9][0-9])[0-9](?:db)?</regex>
                         </requireProperty>
                         --><!-- #endif scala-2.13 -->
                       </rules>

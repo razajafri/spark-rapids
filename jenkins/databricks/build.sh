@@ -101,7 +101,7 @@ initialize()
     MVN_CMD="mvn -Dmaven.wagon.http.retryHandler.count=3"
     # getting the versions of CUDA, SCALA and SPARK_PLUGIN
     SPARK_PLUGIN_JAR_VERSION=$($MVN_CMD help:evaluate -q -pl dist -Dexpression=project.version -DforceStdout)
-    SCALA_VERSION=$($MVN_CMD help:evaluate -q -pl dist -Dexpression=scala.binary.version -DforceStdout)
+    SCALA_VERSION=${SCALA_VERSION:-$($MVN_CMD help:evaluate -q -pl dist -Dexpression=scala.binary.version -DforceStdout)}
     CUDA_VERSION=$($MVN_CMD help:evaluate -q -pl dist -Dexpression=cuda.version -DforceStdout)
     RAPIDS_BUILT_JAR=rapids-4-spark_$SCALA_VERSION-$SPARK_PLUGIN_JAR_VERSION.jar
     # If set to 1, skips installing dependencies into mvn repo.
@@ -182,7 +182,7 @@ else
 fi
 
 # Build the RAPIDS plugin by running package command for databricks
-$MVN_CMD -B -Ddatabricks -Dbuildver=$BUILDVER $MVN_PHASES -DskipTests $MVN_OPT
+$MVN_CMD -B -Ddatabricks -Dbuildver=$BUILDVER $MVN_PHASES -DskipTests $MVN_OPT -f scala2.13
 
 if [[ "$WITH_DEFAULT_UPSTREAM_SHIM" != "0" ]]; then
     echo "Building the default Spark shim and creating a two-shim dist jar"
