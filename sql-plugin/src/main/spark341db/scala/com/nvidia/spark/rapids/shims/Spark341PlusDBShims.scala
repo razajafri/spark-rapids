@@ -17,6 +17,7 @@
 /*** spark-rapids-shim-json-lines
 {"spark": "341db"}
 {"spark": "350db143"}
+{"spark": "400db"}
 spark-rapids-shim-json-lines ***/
 package com.nvidia.spark.rapids.shims
 
@@ -105,9 +106,9 @@ trait Spark341PlusDBShims extends Spark332PlusDBShims {
         (takeExec, conf, p, r) =>
           new SparkPlanMeta[TakeOrderedAndProjectExec](takeExec, conf, p, r) {
             val sortOrder: Seq[BaseExprMeta[SortOrder]] =
-              takeExec.sortOrder.map(GpuOverrides.wrapExpr(_, conf, Some(this)))
+              takeExec.sortOrder.map(GpuOverrides.wrapExpr(_, this.conf, Some(this)))
             val projectList: Seq[BaseExprMeta[NamedExpression]] =
-              takeExec.projectList.map(GpuOverrides.wrapExpr(_, conf, Some(this)))
+              takeExec.projectList.map(GpuOverrides.wrapExpr(_, this.conf, Some(this)))
             override val childExprs: Seq[BaseExprMeta[_]] = sortOrder ++ projectList
 
             override def convertToGpu(): GpuExec = {

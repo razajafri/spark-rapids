@@ -85,7 +85,6 @@
         <profile>
             <id>release320</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
                 <property>
                     <name>buildver</name>
                     <value>320</value>
@@ -218,9 +217,7 @@
         <profile>
             <id>release330</id>
             <activation>
-                <!-- #if scala-2.13 -->
-                <activeByDefault>true</activeByDefault>
-                <!-- #endif scala-2.13 -->
+
                 <property>
                     <name>buildver</name>
                     <value>330</value>
@@ -787,6 +784,7 @@
         <profile>
             <id>release400db</id>
             <activation>
+                <activeByDefault>true</activeByDefault>
                 <property>
                     <name>buildver</name>
                     <value>400db</value>

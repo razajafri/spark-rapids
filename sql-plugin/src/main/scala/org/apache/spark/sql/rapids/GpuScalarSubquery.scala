@@ -45,6 +45,8 @@ case class GpuScalarSubquery(
   @volatile private var result: Any = _
   @volatile private var updated: Boolean = false
 
+  override def resultUpdated(): Boolean = updated
+
   override def updateResult(): Unit = {
     val rows = plan.executeCollect()
     if (rows.length > 1) {

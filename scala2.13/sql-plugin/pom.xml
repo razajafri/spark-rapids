@@ -108,6 +108,15 @@
                 </property>
             </activation>
         </profile>
+        <profile>
+            <id>release400db</id>
+            <activation>
+                <property>
+                    <name>buildver</name>
+                    <value>400db</value>
+                </property>
+            </activation>
+        </profile>
     </profiles>
     <!-- #endif scala-2.13 -->
     <build>

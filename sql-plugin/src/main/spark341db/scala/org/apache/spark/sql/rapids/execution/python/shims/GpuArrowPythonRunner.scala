@@ -59,7 +59,7 @@ class GpuArrowPythonRunner(
 
       val arrowWriter = new GpuArrowPythonWriter(pythonInSchema, maxBatchSize) {
         override protected def writeUDFs(dataOut: DataOutputStream): Unit = {
-          WritePythonUDFUtils.writeUDFs(dataOut, funcs, argOffsets, argNames)
+          WritePythonUDFUtils.writeUDFs(dataOut, funcs, argOffsets, conf, argNames)
         }
       }
       val isInputNonEmpty = inputIterator.nonEmpty

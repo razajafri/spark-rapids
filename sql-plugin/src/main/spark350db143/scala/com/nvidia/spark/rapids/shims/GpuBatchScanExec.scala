@@ -63,7 +63,7 @@ case class GpuBatchScanExec(
 
   @transient override protected lazy val filteredPartitions: Seq[Seq[InputPartition]] = {
     val dataSourceFilters = runtimeFilters.flatMap {
-      case DynamicPruningExpression(e) => DataSourceStrategyUtils.translateRuntimeFilter(e)
+      case DynamicPruningExpression(e, _) => DataSourceStrategyUtils.translateRuntimeFilter(e)
       case _ => None
     }
 

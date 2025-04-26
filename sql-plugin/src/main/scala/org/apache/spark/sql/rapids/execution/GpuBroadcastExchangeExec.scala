@@ -40,13 +40,13 @@ import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
 import org.apache.spark.launcher.SparkLauncher
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.plans.logical.Statistics
 import org.apache.spark.sql.catalyst.plans.physical.{BroadcastMode, BroadcastPartitioning, Partitioning}
 import org.apache.spark.sql.execution.{SparkPlan, SQLExecution}
 import org.apache.spark.sql.execution.exchange.{BroadcastExchangeExec, Exchange}
-import org.apache.spark.sql.execution.exchange.BroadcastExchangeExec.MAX_BROADCAST_TABLE_BYTES
 import org.apache.spark.sql.execution.joins.{BroadcastHashJoinExec, BroadcastNestedLoopJoinExec}
 import org.apache.spark.sql.execution.metric.SQLMetrics
 import org.apache.spark.sql.internal.{SQLConf, StaticSQLConf}
@@ -353,7 +353,7 @@ class GpuBroadcastMeta(
 
 abstract class GpuBroadcastExchangeExecBase(
     mode: BroadcastMode,
-    child: SparkPlan) extends ShimBroadcastExchangeLike with ShimUnaryExecNode with GpuExec {
+    val child: SparkPlan) extends ShimBroadcastExchangeLike with ShimUnaryExecNode with GpuExec {
 
   override val outputRowsLevel: MetricsLevel = ESSENTIAL_LEVEL
   override val outputBatchesLevel: MetricsLevel = MODERATE_LEVEL
@@ -548,10 +548,12 @@ object GpuBroadcastExchangeExecBase {
 
   protected def checkSizeLimit(sizeInBytes: Long) = {
     // Spark restricts the size of broadcast relations to be less than 8GB
-    if (sizeInBytes >= MAX_BROADCAST_TABLE_BYTES) {
+    val maxBroadcastTableSizeInBytes =
+      SparkSession.getActiveSession.get.sessionState.conf.maxBroadcastTableSizeInBytes
+    if (sizeInBytes >= maxBroadcastTableSizeInBytes) {
       throw new SparkException(
         s"Cannot broadcast the table that is larger than" +
-            s"${MAX_BROADCAST_TABLE_BYTES >> 30}GB: ${sizeInBytes >> 30} GB")
+            s"${maxBroadcastTableSizeInBytes >> 30}GB: ${sizeInBytes >> 30} GB")
     }
   }
 
@@ -606,7 +608,7 @@ object GpuBroadcastExchangeExecBase {
 
 case class GpuBroadcastExchangeExec(
     mode: BroadcastMode,
-    child: SparkPlan)
+    override val child: SparkPlan)
     (val cpuCanonical: BroadcastExchangeExec)
     extends GpuBroadcastExchangeExecBase(mode, child) {
   override def otherCopyArgs: Seq[AnyRef] = Seq(cpuCanonical)

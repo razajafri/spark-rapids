@@ -28,7 +28,7 @@ import org.apache.spark.metrics.source.Source
 import org.apache.spark.resource.ResourceInformation
 import org.apache.spark.scheduler.TaskLocality
 import org.apache.spark.shuffle.FetchFailedException
-import org.apache.spark.util.{AccumulatorV2, TaskCompletionListener, TaskFailureListener}
+import org.apache.spark.util.{AccumulatorV2, TaskCompletionListener, TaskFailureListener, TaskInterruptListener}
 
 class MockTaskContext(taskAttemptId: Long, partitionId: Int) extends TaskContext {
 
@@ -115,4 +115,12 @@ class MockTaskContext(taskAttemptId: Long, partitionId: Int) extends TaskContext
 
   private[spark] def createResourceUninterruptibly[T <: Closeable](
       resourceBuilder: => T): T = resourceBuilder
+
+  def addTaskInterruptListener(listener: TaskInterruptListener): TaskContext = {
+    throw new UnsupportedOperationException()
+  }
+ 
+  def getTaskFailure(): Option[Throwable] = {
+    throw new UnsupportedOperationException()
+  }
 }

@@ -31,6 +31,7 @@ object WritePythonUDFUtils {
       dataOut: DataOutputStream,
       funcs: Seq[(ChainedPythonFunctions, Long)],
       argOffsets: Array[Array[Int]],
+      conf: Map[String, String],
       argNames: Option[Array[Array[Option[String]]]] = None,
       profiler: Option[String] = None): Unit = {
     if (argNames.isDefined) {
@@ -40,9 +41,13 @@ object WritePythonUDFUtils {
           ArgumentMetadata(idx, name)
         }
       }
-      PythonUDFRunner.writeUDFs(dataOut, funcs, argMetas, profiler)
+      PythonUDFRunner.writeUDFs(dataOut, funcs, argMetas, profiler, 
+        conf.get("spark.sql.pyspark.udf.logging.maxEntries").get.toInt, 
+        conf.get("spark.sql.pyspark.udf.logging.logLevel").get)
     } else {
-      PythonUDFRunner.writeUDFs(dataOut, funcs, argOffsets, profiler)
+      PythonUDFRunner.writeUDFs(dataOut, funcs, argOffsets, profiler,         
+        conf.get("spark.sql.pyspark.udf.logging.maxEntries").get.toInt, 
+        conf.get("spark.sql.pyspark.udf.logging.logLevel").get)
     }
   }
 }

@@ -16,7 +16,6 @@
 
 /*** spark-rapids-shim-json-lines
 {"spark": "400"}
-{"spark": "400db"}
 spark-rapids-shim-json-lines ***/
 
 package org.apache.spark.sql.rapids.shims

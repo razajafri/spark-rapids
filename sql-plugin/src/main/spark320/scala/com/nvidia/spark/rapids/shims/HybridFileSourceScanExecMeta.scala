@@ -73,7 +73,7 @@ class HybridFileSourceScanExecMeta(plan: FileSourceScanExec,
     }
     wrapped.partitionFilters.map { filter =>
       filter.transformDown {
-        case dpe@DynamicPruningExpression(inSub: InSubqueryExec) =>
+        case dpe@DynamicPruningExpression(inSub: InSubqueryExec, _) =>
           inSub.plan match {
             case bc: SubqueryBroadcastExec =>
               dpe.copy(inSub.copy(plan = convertBroadcast(bc)))

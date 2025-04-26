@@ -68,7 +68,7 @@ class GpuCoGroupedArrowPythonRunner(
           PythonRDD.writeUTF(k, dataOut)
           PythonRDD.writeUTF(v, dataOut)
         }
-        WritePythonUDFUtils.writeUDFs(dataOut, funcs, argOffsets)
+        WritePythonUDFUtils.writeUDFs(dataOut, funcs, argOffsets, conf)
       }
 
       override def writeNextInputToStream(dataOut: DataOutputStream): Boolean = {

@@ -87,7 +87,8 @@ def define_deps(spark_version, scala_version):
         Artifact('org.apache.hive', 'hive-exec',
                          f'{spark_prefix}--patched-hive-with-glue--hive-exec*.jar'),
         Artifact('org.apache.hive', 'hive-metastore-client-patched',
-                         f'{spark_prefix}--patched-hive-with-glue--hive-metastore_filtered--*--org.apache.hive__hive-metastore__2.3.9.jar'),
+                         f'{spark_prefix}--patched-hive-with-glue--hive-*-patch-hive-2.3__hadoop-3.2_2.12_deploy.jar'),
+
         # Hive
         Artifact('org.apache.hive', 'hive-serde',
                  f'{prefix_ws_sp_mvn_hadoop}--org.apache.hive--hive-serde--org.apache.hive__hive-serde__*.jar'),
