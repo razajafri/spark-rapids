@@ -101,7 +101,7 @@ initialize()
     MVN_CMD="mvn -Dmaven.wagon.http.retryHandler.count=3"
     # getting the versions of CUDA, SCALA and SPARK_PLUGIN
     SPARK_PLUGIN_JAR_VERSION=$($MVN_CMD help:evaluate -q -pl dist -Dexpression=project.version -DforceStdout)
-    SCALA_VERSION=${SCALA_VERSION:-$($MVN_CMD help:evaluate -q -pl dist -Dexpression=scala.binary.version -DforceStdout)}
+    SCALA_VERSION=2.13
     CUDA_VERSION=$($MVN_CMD help:evaluate -q -pl dist -Dexpression=cuda.version -DforceStdout)
     RAPIDS_BUILT_JAR=rapids-4-spark_$SCALA_VERSION-$SPARK_PLUGIN_JAR_VERSION.jar
     # If set to 1, skips installing dependencies into mvn repo.
@@ -109,7 +109,7 @@ initialize()
     # export 'M2DIR' so that shims can get the correct Spark dependency info
     export M2DIR=/home/ubuntu/.m2/repository
     # whether to build a two-shim jar with the lowest supported upstream Spark version
-    WITH_DEFAULT_UPSTREAM_SHIM=${WITH_DEFAULT_UPSTREAM_SHIM:-1}
+    WITH_DEFAULT_UPSTREAM_SHIM=${WITH_DEFAULT_UPSTREAM_SHIM:-0}
 
 
     # Print a banner of the build configurations.
