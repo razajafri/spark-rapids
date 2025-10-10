@@ -26,12 +26,12 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.connector.catalog.SupportsWrite
 import org.apache.spark.sql.delta.{DeltaDynamicPartitionOverwriteCommand, DeltaLog, DeltaParquetFileFormat}
-import org.apache.spark.sql.delta.DeltaParquetFileFormat.IS_ROW_DELETED_COLUMN_NAME
+import org.apache.spark.sql.delta.{DeltaDynamicPartitionOverwriteCommand, DeltaLog, DeltaParquetFileFormat}
 import org.apache.spark.sql.delta.catalog.{DeltaCatalog, DeltaTableV2}
 import org.apache.spark.sql.delta.commands.{DeleteCommand, MergeIntoCommand, OptimizeTableCommand, UpdateCommand}
 import org.apache.spark.sql.delta.metric.IncrementMetric
 import org.apache.spark.sql.delta.rapids.DeltaRuntimeShim
-import org.apache.spark.sql.delta.sources.{DeltaDataSource, DeltaSQLConf}
+import org.apache.spark.sql.delta.sources.DeltaDataSource
 import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.command.RunnableCommand
 import org.apache.spark.sql.execution.datasources.{FileFormat, HadoopFsRelation, SaveIntoDataSourceCommand}
@@ -139,15 +139,6 @@ object Delta33xProvider extends DeltaIOProvider {
   override def tagSupportForGpuFileSourceScan(meta: SparkPlanMeta[FileSourceScanExec]): Unit = {
     val format = meta.wrapped.relation.fileFormat
     if (format.getClass == classOf[DeltaParquetFileFormat]) {
-      val session = meta.wrapped.session
-      val useMetadataRowIndex =
-        session.sessionState.conf.getConf(DeltaSQLConf.DELETION_VECTORS_USE_METADATA_ROW_INDEX)
-      val requiredSchema = meta.wrapped.requiredSchema
-      val isRowDeletedCol =  requiredSchema.exists(_.name == IS_ROW_DELETED_COLUMN_NAME)
-      if (useMetadataRowIndex && isRowDeletedCol) {
-        meta.willNotWorkOnGpu("we don't support generating metadata row index for " +
-          s"${meta.wrapped.getClass.getSimpleName}")
-      }
       GpuReadParquetFileFormat.tagSupport(meta)
     } else {
       meta.willNotWorkOnGpu(s"format ${format.getClass} is not supported")
@@ -157,7 +148,9 @@ object Delta33xProvider extends DeltaIOProvider {
   override def getReadFileFormat(relation: HadoopFsRelation): FileFormat = {
     val fmt = relation.fileFormat.asInstanceOf[DeltaParquetFileFormat]
     GpuDelta33xParquetFileFormat(fmt.protocol, fmt.metadata, fmt.nullableRowTrackingFields,
-      fmt.optimizationsEnabled, fmt.tablePath, fmt.isCDCRead)
+      // force disable predicate pushdown if dv enabled
+      fmt.tablePath.map(_ => false).getOrElse(fmt.optimizationsEnabled),
+      fmt.tablePath, fmt.isCDCRead)
   }
 
   override def convertToGpu(

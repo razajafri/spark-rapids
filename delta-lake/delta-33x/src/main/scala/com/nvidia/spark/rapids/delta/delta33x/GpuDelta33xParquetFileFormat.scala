@@ -38,7 +38,6 @@ import org.apache.spark.sql.delta.DeltaParquetFileFormat._
 import org.apache.spark.sql.delta.actions._
 import org.apache.spark.sql.delta.logging.DeltaLogKeys
 import org.apache.spark.sql.delta.schema.SchemaMergingUtils
-import org.apache.spark.sql.delta.sources.DeltaSQLConf
 import org.apache.spark.sql.execution.datasources.{FilePartition, PartitionedFile}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.rapids._
@@ -58,12 +57,8 @@ case class GpuDelta33xParquetFileFormat(
 
   // Validate either we have all arguments for DV enabled read or none of them.
   if (hasTablePath) {
-    SparkSession.getActiveSession.map { session =>
-      val useMetadataRowIndex =
-        session.sessionState.conf.getConf(DeltaSQLConf.DELETION_VECTORS_USE_METADATA_ROW_INDEX)
-      require(useMetadataRowIndex == optimizationsEnabled,
-        "Wrong arguments for Delta table scan with deletion vectors")
-    }
+    require(optimizationsEnabled == false,
+      "Spark Rapids doesn't support predicate pushdowns with Deletion Vectors")
   }
 
   if (SparkSession.getActiveSession.isDefined) {
@@ -156,12 +151,6 @@ case class GpuDelta33xParquetFileFormat(
       metrics: Map[String, GpuMetric])
   : PartitionedFile => Iterator[InternalRow] = {
 
-    // We don't want to use metadata to generate Row Indices as it will also
-    // generate hidden metadata that we currently can't handle.
-    // For details see https://github.com/NVIDIA/spark-rapids/issues/7458
-    val useMetadataRowIndexConf = DeltaSQLConf.DELETION_VECTORS_USE_METADATA_ROW_INDEX
-    val useMetadataRowIndex = sparkSession.sessionState.conf.getConf(useMetadataRowIndexConf)
-
     val dataReader = super.buildReaderWithPartitionValuesAndMetrics(
       sparkSession,
       dataSchema,
@@ -192,8 +181,8 @@ case class GpuDelta33xParquetFileFormat(
 
     if (isRowDeletedColumn.isEmpty) return dataReader
 
-    require(useMetadataRowIndex || !optimizationsEnabled,
-      "Cannot generate row index related metadata with file splitting or predicate pushdown")
+    require(!optimizationsEnabled,
+      "Spark Rapids doesn't support predicate pushdowns with Deletion Vectors")
 
     if (hasTablePath && isRowDeletedColumn.isEmpty) {
       throw new IllegalArgumentException(
