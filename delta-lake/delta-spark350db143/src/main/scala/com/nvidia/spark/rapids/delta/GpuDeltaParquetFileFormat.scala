@@ -24,8 +24,9 @@ import com.databricks.sql.transaction.tahoe.DeltaParquetFileFormat._
 import com.databricks.sql.transaction.tahoe.deletionvectors.{DropMarkedRowsFilter, KeepAllRowsFilter, KeepMarkedRowsFilter}
 import com.databricks.sql.transaction.tahoe.files.TahoeFileIndex
 import com.databricks.sql.transaction.tahoe.util.DeltaFileOperations.absolutePath
-import com.nvidia.spark.rapids.{GpuColumnVector, GpuMetric, HostColumnarToGpu, RapidsHostColumnBuilder, SparkPlanMeta}
+import com.nvidia.spark.rapids._
 import com.nvidia.spark.rapids.Arm.withResource
+import com.nvidia.spark.rapids.parquet._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import scala.collection.mutable.ArrayBuffer
@@ -41,6 +42,7 @@ import org.apache.spark.sql.execution.datasources.{HadoopFsRelation, Partitioned
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.execution.vectorized.{OffHeapColumnVector, WritableColumnVector}
 import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.rapids._
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.sql.vectorized.{ColumnarBatch, ColumnarBatchRow, ColumnVector}
