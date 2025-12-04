@@ -35,6 +35,7 @@ import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.Literal.TrueLiteral
+import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
 import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.datasources.{HadoopFsRelation, PartitionedFile}
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
@@ -146,15 +147,10 @@ case class GpuDeltaParquetFileFormat(
 
     (file: PartitionedFile) => {
       val iter = dataReader(file)
-      RapidsDeletionVectorUtils.iteratorWithAdditionalMetadataColumns(
-        tahoeTablePath,
-        file,
-        iter,
-        isRowDeletedColumn,
-        rowIndexColumn,
-        tablePath,
-        serializableHadoopConf,
-        metrics).asInstanceOf[Iterator[InternalRow]]
+      RapidsDeletionVectorUtils.
+        iteratorWithAdditionalMetadataColumns(tahoeTablePath, file, iter, isRowDeletedColumn,
+        rowIndexColumn, broadcastFilePathToDVMap, broadcastConfiguration, metrics)
+        .asInstanceOf[Iterator[InternalRow]]
     }
   }
 
